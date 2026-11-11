@@ -1,14 +1,11 @@
-Expenses Tracker v6 — Investment Insights TEST
+Expenses Tracker v9 — Usability TEST (v8 intentionally skipped)
+Based directly on the working v7 release. No database schema change.
+New: Home quick-entry buttons for Expense, Income, Transfer; header global search;
+currency and receipt filters within search; receipt-only filter on Activity;
+clear search button; v9 version indicator in Settings; larger shortcut touch targets.
+Existing charts, investments, loan and credit-card functionality unchanged.
 
-Built from v5. No backend, no Google Sheets. Existing IndexedDB schema unchanged.
-
-New visible features:
-- Investments: OMR and INR separate summaries for invested cost, current value, value change, percentage, and allocation by asset type.
-- Credit cards: available credit and over-limit label (when credit limit set).
-- Settings: v6 info card.
-- Fix: due-loan alert recording used an undefined variable; now records the correct due date.
-- Recurring bill paid from alert now includes a generation marker to avoid duplicates.
-
-Important: P/L is the difference between saved cost and current value, NOT realized P/L. It may be misleading if a user has withdrawals, distributions, or incomplete historical cost. No automatic NAV refresh offline.
-
-Before deployment: back up v5. Install all files, open online once, close/reopen, verify offline, assets, cards, balances, receipts, and backup/restore. Test loan due-alert payment carefully.
+Before installing: export and verify a v7 backup. Replace all files on GitHub
+Pages, open online, close/reopen after service worker updates, then test offline.
+Test shortcuts, global search, receipt-only filtering, all existing balances,
+investment trades, backup and restore. No native iOS device test performed.

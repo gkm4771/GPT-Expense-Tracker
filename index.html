@@ -83,14 +83,25 @@ nav .plus{width:54px;height:54px;border-radius:27px;background:var(--acc);color:
 #lock{position:fixed;inset:0;z-index:20;background:var(--bg);display:none;flex-direction:column;align-items:center;justify-content:center;gap:26px}
 .pad{display:grid;grid-template-columns:repeat(3,76px);gap:14px}.pad button{height:76px;border-radius:38px;border:0;background:var(--card);color:var(--ink);font-size:26px;box-shadow:var(--shadow)}
 .pdots{display:flex;gap:16px}.pdots i{width:15px;height:15px;border-radius:8px;border:2px solid var(--acc)}.pdots i.f{background:var(--acc)}
+/* v9: comfortable tap targets, visible shortcuts, receipt management */
+.v9actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:12px 0}
+.v9actions button{background:var(--card);border:1px solid var(--line);border-radius:17px;color:var(--ink);padding:13px 5px;font:inherit;font-size:13px;font-weight:600;min-height:55px}
+.v9actions button:active{background:var(--bg)}
+.v9searchrow{display:flex;gap:8px;align-items:center}.v9searchrow input{margin:0;min-width:0}
+.v9result{display:flex;justify-content:space-between;align-items:center;text-align:left;width:100%;border:0;border-top:1px solid var(--line);background:transparent;color:var(--ink);padding:13px 2px;font:inherit;gap:8px}
+.v9result small{display:block;color:var(--mute);font-size:12px}.v9result .amt{font-size:13px}
+.v9receipt{width:100%;max-height:240px;object-fit:contain;border-radius:12px;background:var(--bg);margin-top:8px}
+.v9summary{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;margin:8px 0}
+.v9summary span{font-size:12px;color:var(--mute)}
 </style>
 </head>
 <body>
-<header><div class="bar"><button class="ib" id="menu" aria-label="Menu"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button><div><button class="ib" id="bell" aria-label="Alerts"><svg viewBox="0 0 24 24"><path d="M6 9a6 6 0 0 1 12 0c0 6 2.5 8 2.5 8h-17S6 15 6 9M10 20.5a2 2 0 0 0 4 0"/></svg><span class="badge" id="bellc" style="display:none"></span></button><button class="ib" id="sync">↻</button></div></div><h1 id="title">Home</h1></header>
+<header><div class="bar"><button class="ib" id="menu" aria-label="Menu"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button><div><button class="ib" id="bell" aria-label="Alerts"><svg viewBox="0 0 24 24"><path d="M6 9a6 6 0 0 1 12 0c0 6 2.5 8 2.5 8h-17S6 15 6 9M10 20.5a2 2 0 0 0 4 0"/></svg><span class="badge" id="bellc" style="display:none"></span></button><button class="ib" id="v9search" aria-label="Search all transactions" title="Search">⌕</button><button class="ib" id="sync">↻</button></div></div><h1 id="title">Home</h1></header>
 <main>
   <section id="home"></section>
   <section id="activity">
-    <div class="mrow"><input id="q" type="search" placeholder="Search transactions"><button class="btn fb" id="fbtn">Filter</button></div><div class="cur" id="fsum" style="margin:0 4px 4px"></div><div class="chips" id="sfc"></div>
+    <div class="mrow"><input id="q" type="search" placeholder="Search transactions"><button class="btn fb" id="fbtn">Filter</button></div>
+    <div class="chips"><button class="chip" id="v9receiptonly" type="button">📎 With receipts</button><button class="chip" id="v9clearsearch" type="button">Clear search</button></div><div class="cur" id="fsum" style="margin:0 4px 4px"></div><div class="chips" id="sfc"></div>
     <div class="card" id="txlist"></div>
   </section>
   <section id="budgets"></section>
@@ -113,6 +124,7 @@ nav .plus{width:54px;height:54px;border-radius:27px;background:var(--acc);color:
         <p class="cur" id="lmsg"></p>
       </div>
     </div>
+    <div class="card"><label>Daily usability · v9</label><p class="cur">Quick expense/income/transfer buttons on Home, global transaction search, and receipt-only filtering in Activity. No database migration.</p></div>
     <h2>Data protection</h2>
     <div class="card" id="healthpanel"><div class="cur">Checking local database…</div></div>
     <div class="card"><button class="btn" id="healthcheck">Check database and balances</button>
@@ -125,7 +137,7 @@ nav .plus{width:54px;height:54px;border-radius:27px;background:var(--acc);color:
       <button class="chip" data-ac="mint"><i class="dot" style="background:#19b389"></i>Mint</button><button class="chip" data-ac="violet"><i class="dot" style="background:#8b6cf0"></i>Violet</button>
       <button class="chip" data-ac="amber"><i class="dot" style="background:#e09a2b"></i>Amber</button><button class="chip" data-ac="rose"><i class="dot" style="background:#e5637d"></i>Rose</button>
       <button class="chip" data-ac="sky"><i class="dot" style="background:#3d9be0"></i>Sky</button></div></div>
-    <div class="card"><label>Investment insights · v6</label>
+    <div class="card"><label>Advanced investments · v7</label>
       <p class="cur">Portfolio overview by currency and asset type, invested-versus-current-value change, available credit, and a loan-payment alert fix. Existing v5 safeguards, records, and backup remain unchanged.</p>
     </div>
     <h2>Security</h2><div class="card"><button class="btn" id="pinbtn">Set passcode</button><button class="btn del" id="pinoff" style="display:none">Remove passcode</button>
@@ -162,6 +174,40 @@ nav .plus{width:54px;height:54px;border-radius:27px;background:var(--acc);color:
 <script>
 const $=s=>document.querySelector(s), TYPES=["Expense","Income","Investment","Redemption","Transfer"];
 const S={hm:new Date().toISOString().slice(0,7),cc:"OMR",off:false,goals:JSON.parse(localStorage.getItem("goals")||"[]"),ious:JSON.parse(localStorage.getItem("ious")||"[]"),loans:JSON.parse(localStorage.getItem("loans")||"[]"),rk:new Set(),assets:JSON.parse(localStorage.getItem("assets")||"[]"),trash:[],atype:{},f:{type:new Set(),acct:new Set(),atype:new Set(),cur:new Set(),cat:new Set(),from:"",to:"",min:"",max:""},accounts:[],cats:[],tx:[],bal:[],dash:null,bud:[],rec:[],month:new Date().toISOString().slice(0,7)};
+const assetTrades=()=>{try{return JSON.parse(localStorage.getItem("assetTrades")||"[]")}catch(_){return []}};
+const saveTrades=t=>localStorage.setItem("assetTrades",JSON.stringify(t));
+const rnum=n=>Math.round((Number(n)||0)*1e8)/1e8;
+/* Weighted-average cost method; historical assets remain untouched until the first trade. */
+function tradePosition(a){
+ const opening=a.tradeOpening||{units:Number(a.units)||0,cost:Number(a.cost)||0};
+ let units=Number(opening.units)||0,cost=Number(opening.cost)||0,realized=0;
+ const trades=assetTrades().filter(t=>t.assetId===a.id).sort((x,y)=>x.date.localeCompare(y.date)||String(x.created).localeCompare(String(y.created)));
+ for(const t of trades){const q=Number(t.units),gross=q*Number(t.price),fee=Number(t.fee)||0;
+   if(t.side==="Buy"){units+=q;cost+=gross+fee}
+   else {if(q>units+1e-7)return {error:"A sale exceeds the units held",trades};const avg=units>0?cost/units:0;realized+=gross-fee-q*avg;cost-=q*avg;units-=q;if(Math.abs(units)<1e-7){units=0;cost=0}}
+ }
+ return {units:rnum(units),cost:rnum(cost),realized:rnum(realized),trades};
+}
+function applyTradePosition(a){const x=tradePosition(a);if(x.error)throw Error(x.error);a.units=x.units;a.cost=+(x.cost.toFixed(2));if(a.nav>0)a.value=+(x.units*a.nav).toFixed(2);else if(a.lastTradePrice>0)a.value=+(x.units*a.lastTradePrice).toFixed(2);return x}
+function tradePanel(a){
+ const p=tradePosition(a);if(p.error)return `<div class="msg err">${esc(p.error)}</div>`;
+ const price=p.units>0?Number(a.value)/p.units:0,unreal=Number(a.value)-p.cost;
+ return `<div class="card"><label>Holdings · weighted-average cost</label><div class="tiles"><div>Units held<b>${p.units.toLocaleString()}</b></div><div>Average cost/unit<b>${p.units?(p.cost/p.units).toFixed(4):"—"}</b></div><div>Unrealized P/L<b class="${unreal<0?"Expense":"Income"}">${money(unreal,a.cur)}</b></div><div>Realized P/L<b class="${p.realized<0?"Expense":"Income"}">${money(p.realized,a.cur)}</b></div></div><p class="cur">Current unit value: ${price?price.toFixed(4):"N/A"}. P/L uses saved valuations and weighted-average acquisition cost; fees included. Does not calculate taxes or dividends.</p><button class="btn" id="tradeadd">Record buy / sell</button><label>Trade history</label>${p.trades.length?p.trades.slice().reverse().map(t=>`<div class="acc row"><span>${esc(t.side)} · ${esc(t.date)}<br><small>${t.units} units × ${money(t.price,a.cur)} · fees ${money(t.fee||0,a.cur)}</small></span><button class="chip" data-deltrade="${esc(t.id)}">Delete</button></div>`).join(""):"<p class='cur'>No trades recorded yet. Existing holdings are treated as your opening position.</p>"}</div>`;
+}
+function tradeForm(a){
+ const p=tradePosition(a);if(p.error){alert(p.error);return}
+ open_(`<h3>Record investment trade</h3><p class="cur">${esc(a.name)} · ${esc(a.cur)} · ${p.units} units held</p><label>Action</label><select id="tr_side"><option>Buy</option><option>Sell</option></select><label>Trade date</label><input id="tr_date" type="date" value="${new Date().toLocaleDateString('en-CA')}"><label>Units</label><input id="tr_units" type="number" inputmode="decimal" min="0" step="any"><label>Price per unit (${esc(a.cur)})</label><input id="tr_price" type="number" inputmode="decimal" min="0" step="any"><label>Fees (${esc(a.cur)})</label><input id="tr_fee" type="number" inputmode="decimal" min="0" step="any" value="0"><button class="btn" id="tr_save">Save trade</button><p class="cur">Investment trades update holdings and acquisition cost only. They do not automatically create bank transactions, avoiding duplicate cash flows.</p>`);
+ $("#tr_save").onclick=()=>{
+ const side=$("#tr_side").value,date=$("#tr_date").value,units=Number($("#tr_units").value),price=Number($("#tr_price").value),fee=Number($("#tr_fee").value);
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||!Number.isFinite(Date.parse(date))||!Number.isFinite(units)||units<=0||!Number.isFinite(price)||price<=0||!Number.isFinite(fee)||fee<0){alert("Enter a valid date, positive units and price, and non-negative fees.");return}
+ const opening=a.tradeOpening||{units:Number(a.units)||0,cost:Number(a.cost)||0};
+ if(!a.tradeOpening&&opening.units<=0&&opening.cost>0){alert("Please enter the number of units held in the asset before recording trades.");return}
+ const t=assetTrades(),rec={id:gid("TR"),assetId:a.id,side,date,units,price,fee,created:new Date().toISOString()};
+ const old=a.tradeOpening;a.tradeOpening=opening;saveTrades([...t,rec]);
+ try{const pos=tradePosition(a);if(pos.error)throw Error(pos.error);a.lastTradePrice=price;applyTradePosition(a);localStorage.setItem("assets",JSON.stringify(S.assets));close_();render();assetForm(a)}
+ catch(err){saveTrades(t);if(!old)delete a.tradeOpening;alert(err.message)}
+ };
+}
 const MODE="local";
 // Preserve the existing local database. Remove old connection credentials.
 localStorage.removeItem("api");localStorage.removeItem("key");localStorage.setItem("mode","local");
@@ -248,6 +294,7 @@ function wealth(){
   const comb=R&&tot.OMR!==undefined&&tot.INR!==undefined?`<div class="acc row"><span>Combined in OMR<br><small>1 OMR = ${R} INR</small></span><b>${money(tot.OMR+tot.INR/R,"OMR")}</b></div>`:"";
   return rows+comb;
 }
+function v9Shortcuts(){return `<div class="v9actions"><button data-v9quick="Expense">− Expense</button><button data-v9quick="Income">+ Income</button><button data-v9quick="Transfer">⇄ Transfer</button></div><button class="chip" id="v9homefind" style="width:100%;text-align:left;padding:12px 16px">⌕ Search all transactions</button>`}
 function home(){
   const m=S.hm,ts=S.tx.filter(t=>!m||day(t).slice(0,7)===m),R=Number(localStorage.getItem("rate"))||0,cu=["OMR","INR"];
   const sm=(c,ty)=>ts.filter(t=>g(t,"Currency")===c&&g(t,"Type")===ty).reduce((s,t)=>s+Number(g(t,"Amount")),0);
@@ -259,8 +306,11 @@ function home(){
     <div class="stats"><span>Income<b class="Income">${money(i,"")}</b></span><span>Spent<b class="Expense">${money(e,"")}</b></span><span>Invested<b class="Investment">${money(v,"")}</b></span></div></div>`});
   if(net.OMR!==undefined&&net.INR!==undefined)h+=R?`<div class="card"><div class="cur">Combined net flow, in OMR · ${m||"all time"}</div><div class="big">${money(net.OMR+net.INR/R,"")}</div></div>`:'<div class="card"><div class="cur">Combined net flow, in OMR</div><div class="msg" style="padding:8px">Set the exchange rate in Settings to see it.</div></div>';
   const w=wealth();if(w)h+="<h2>Total wealth</h2><div class='card'>"+w+"</div>";
+  h+=v9Shortcuts();
   h+="<h2>Recent transactions</h2><div class='card'>"+txRows(S.tx.slice(0,6))+"</div>";
   $("#home").innerHTML=h;
+  document.querySelectorAll("#home [data-v9quick]").forEach(b=>b.onclick=()=>v9Quick(b.dataset.v9quick));
+  $("#v9homefind").onclick=v9Search;
   $("#hm").onchange=e=>{S.hm=e.target.value;home();insights()};$("#hall").onclick=()=>{S.hm="";home();insights()};
 }
 function txRows(list){
@@ -282,10 +332,12 @@ function passes(t){
   return true;
 }
 function nFilters(){const f=S.f;return f.type.size+f.acct.size+f.atype.size+f.cur.size+f.cat.size+(f.from||f.to?1:0)+(f.min!==""||f.max!==""?1:0)}
-function filtered(){const q=$("#q").value.toLowerCase();return S.tx.filter(t=>passes(t)&&(!q||Object.values(t).join(" ").toLowerCase().includes(q)))}
+let v9ReceiptOnly=false;
+function filtered(){const q=$("#q").value.toLowerCase();return S.tx.filter(t=>passes(t)&&(!v9ReceiptOnly||S.rk.has(String(tid(t))))&&(!q||Object.values(t).join(" ").toLowerCase().includes(q)))}
 function activity(){sfChips();
   const q=$("#q").value.toLowerCase();
   const list=filtered();
+  $("#v9receiptonly").classList.toggle("on",v9ReceiptOnly);
   const n=nFilters();$("#fbtn").textContent=n?"Filter · "+n:"Filter";
   const net={};list.forEach(t=>{const c=g(t,"Currency"),y=g(t,"Type"),v=Number(g(t,"Amount"));net[c]=net[c]||0;
     if(y==="Income")net[c]+=v;else if(y==="Expense"||y==="Investment")net[c]-=v});
@@ -717,8 +769,8 @@ const rcOp=async(m,...a)=>{const db=await idb;return new Promise((res,rej)=>{con
 const rcPut=(k,v)=>rcOp("put",v,String(k)),rcGet=k=>rcOp("get",String(k)),rcDel=k=>rcOp("delete",String(k));
 async function rcAll(){const ks=await rcOp("getAllKeys"),o={};for(const k of ks)o[k]=await rcGet(k);return o}
 function shrink(f){return new Promise(res=>{const im=new Image();im.onload=()=>{const sc=Math.min(1,900/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=im.width*sc;c.height=im.height*sc;c.getContext("2d").drawImage(im,0,0,c.width,c.height);res(c.toDataURL("image/jpeg",.6))};im.src=window.URL.createObjectURL(f)})}
-async function fullBackup(){const d=DBL.load();d.goals=S.goals;d.ious=S.ious;d.loans=S.loans;d.assets=S.assets;d.lowBal=LB();try{d.receipts=await rcAll()}catch(_){}return d}
-function restoreExtras(d){["goals","ious","loans","assets"].forEach(k=>{if(Array.isArray(d[k])){S[k]=d[k];localStorage.setItem(k,JSON.stringify(d[k]))}delete d[k]});
+async function fullBackup(){const d=DBL.load();d.goals=S.goals;d.ious=S.ious;d.loans=S.loans;d.assets=S.assets;d.assetTrades=assetTrades();d.lowBal=LB();try{d.receipts=await rcAll()}catch(_){}return d}
+function restoreExtras(d){if(Array.isArray(d.assetTrades))saveTrades(d.assetTrades);else saveTrades([]);delete d.assetTrades;["goals","ious","loans","assets"].forEach(k=>{if(Array.isArray(d[k])){S[k]=d[k];localStorage.setItem(k,JSON.stringify(d[k]))}delete d[k]});
   delete d.receipts;if(d.lowBal)localStorage.setItem("lowBal",JSON.stringify(d.lowBal));delete d.lowBal}
 
 /* Local data safety: snapshots are recovery aids, not off-device backups. */
@@ -971,13 +1023,14 @@ function portfolioInsights(){
     const invested=rows.reduce((n,a)=>n+(Number(a.cost)||0),0);
     const current=rows.reduce((n,a)=>n+(Number(a.value)||0),0);
     const delta=current-invested,pct=invested>0?delta/invested*100:null;
+    const realized=rows.reduce((n,a)=>n+(tradePosition(a).realized||0),0);
     const types=[...new Set(rows.map(a=>a.type||"Other"))].sort();
     const typeRows=types.map(t=>{
       const r=rows.filter(a=>(a.type||"Other")===t),v=r.reduce((n,a)=>n+(Number(a.value)||0),0);
       return `<div class="acc row"><span>${esc(t)} <small>(${r.length})</small></span><b>${money(v,c)}</b></div>`;
     }).join("");
     const last=rows.filter(a=>a.code&&a.navDate).map(a=>a.navDate);
-    parts.push(`<div class="card"><label>${c} investment overview</label><div class="tiles"><div>Amount invested<b>${money(invested,c)}</b></div><div>Current value<b>${money(current,c)}</b></div><div>Value change<b class="${delta<0?"Expense":"Income"}">${delta>=0?"+":""}${money(delta,c)}</b></div><div>Change %<b class="${delta<0?"Expense":"Income"}">${pct===null?"N/A":(pct>=0?"+":"")+pct.toFixed(2)+"%"}</b></div></div><p class="cur">Based on saved asset costs and values; not realized profit, tax return or cash-flow return. ${last.length?"Fund NAV dates may differ between assets.":""}</p><label>Allocation by asset type</label>${typeRows}</div>`);
+    parts.push(`<div class="card"><label>${c} investment overview</label><div class="tiles"><div>Amount invested<b>${money(invested,c)}</b></div><div>Current value<b>${money(current,c)}</b></div><div>Value change<b class="${delta<0?"Expense":"Income"}">${delta>=0?"+":""}${money(delta,c)}</b></div><div>Change %<b class="${delta<0?"Expense":"Income"}">${pct===null?"N/A":(pct>=0?"+":"")+pct.toFixed(2)+"%"}</b></div></div><div class="acc row"><span>Realized P/L from recorded sales</span><b class="${realized<0?"Expense":"Income"}">${money(realized,c)}</b></div><p class="cur">Value change is unrealized P/L based on saved asset costs and values; realized P/L is calculated separately using weighted-average cost. Not a tax return or cash-flow return. ${last.length?"Fund NAV dates may differ between assets.":""}</p><label>Allocation by asset type</label>${typeRows}</div>`);
   }
   host.innerHTML=parts.join("")||'<div class="card msg">Add an investment to see portfolio insights.</div>';
 }
@@ -1015,10 +1068,23 @@ function assetForm(x){
   open_(`<h3>${e?"Edit":"New"} asset</h3><label>Name</label><input id="s_n" value="${esc(x.name)}"><label>Type</label><select id="s_t">${["Gold","Stocks","Mutual fund","Property","Vehicle","Savings scheme","Other"].map(t=>`<option ${t===x.type?"selected":""}>${t}</option>`).join("")}</select>
   <label>Currency</label><select id="s_c"><option ${x.cur==="OMR"?"selected":""}>OMR</option><option ${x.cur==="INR"?"selected":""}>INR</option></select>
   <div id="s_mf" style="display:none"><label>Find your fund (type part of its name)</label><div class="mrow"><input id="s_q" placeholder="e.g. parag parikh flexi"><button class="chip" id="s_sb" type="button">Search</button></div><div id="s_res" class="chips"></div><p class="cur" id="s_sel"></p><label>Units held</label><input id="s_u" type="number" inputmode="decimal" value="${x.units||""}"></div>
+  <div id="s_other_units"><label>Units held (stocks / gold, optional)</label><input id="s_units_other" type="number" inputmode="decimal" step="any" value="${x.units||""}"></div>
   <label>Amount invested</label><input id="s_i" type="number" inputmode="decimal" value="${x.cost}"><label id="s_vl">Current value</label><input id="s_v" type="number" inputmode="decimal" value="${x.value}">
   <button class="btn" id="s_s">Save</button>${e?'<button class="btn del" id="s_x">Delete</button>':""}`);
+  if(e&&(["Stocks","Mutual fund","Gold","Other"].includes(x.type))){
+    $("#form").insertAdjacentHTML("beforeend",tradePanel(x));
+    const b=$("#tradeadd");if(b)b.onclick=()=>tradeForm(x);
+    document.querySelectorAll("[data-deltrade]").forEach(b=>b.onclick=()=>{
+      if(!confirm("Delete this trade and recalculate holdings?"))return;
+      const old=assetTrades(),next=old.filter(t=>t.id!==b.dataset.deltrade);saveTrades(next);
+      const pos=tradePosition(x);if(pos.error){saveTrades(old);alert(pos.error);return}
+      applyTradePosition(x);localStorage.setItem("assets",JSON.stringify(S.assets));close_();render();assetForm(x);
+    });
+  }
   const sv=()=>{localStorage.setItem("assets",JSON.stringify(S.assets));close_();render()};
-  const tsync=()=>{const mf=$("#s_t").value==="Mutual fund";$("#s_mf").style.display=mf?"":"none";$("#s_vl").textContent=mf?"Current value (calculated from units × NAV once a fund is set)":"Current value";if(mf)$("#s_c").value="INR"};
+  const hasTrades=e&&assetTrades().some(t=>t.assetId===x.id);
+  if(hasTrades){$("#s_units_other").readOnly=true;$("#s_i").readOnly=true;$("#s_u").readOnly=true;$("#s_i").title="Managed by trade history";$("#s_u").title="Managed by trade history"}
+  const tsync=()=>{const mf=$("#s_t").value==="Mutual fund";$("#s_other_units").style.display=mf?"none":"";$("#s_mf").style.display=mf?"":"none";$("#s_vl").textContent=mf?"Current value (calculated from units × NAV once a fund is set)":"Current value";if(mf)$("#s_c").value="INR"};
   $("#s_t").onchange=tsync;tsync();
   const sel=()=>{$("#s_sel").textContent=code?"Selected: "+sn+" ("+code+")":""};sel();
   $("#s_sb").onclick=async()=>{const q=$("#s_q").value.trim();if(!q)return;$("#s_res").textContent="Searching…";
@@ -1028,7 +1094,8 @@ function assetForm(x){
     catch(err){$("#s_res").textContent="Search failed ("+err.message+"). Check your internet connection."}};
   $("#s_s").onclick=async()=>{
     const u=Number($("#s_u").value)||0,use=$("#s_t").value==="Mutual fund"&&code&&u>0;if(!use&&$("#s_v").value==="")return;
-    const o={id:e?x.id:gid("AS"),name:$("#s_n").value.trim(),type:$("#s_t").value,cur:$("#s_c").value,cost:Number($("#s_i").value)||0,value:Number($("#s_v").value)||0,code:use?code:"",schemeName:use?sn:"",units:use?u:0,nav:x.code===code?x.nav||0:0,navDate:x.code===code?x.navDate||"":""};
+    if(hasTrades&&($("#s_t").value!==x.type||$("#s_c").value!==x.cur)){alert("You cannot change asset type or currency after recording trades.");return}
+    const o={id:e?x.id:gid("AS"),name:$("#s_n").value.trim(),type:$("#s_t").value,cur:$("#s_c").value,cost:hasTrades?x.cost:Number($("#s_i").value)||0,value:Number($("#s_v").value)||0,code:use?code:"",schemeName:use?sn:"",units:hasTrades?x.units:(use?u:(Number($("#s_units_other").value)||0)),nav:x.code===code?x.nav||0:0,navDate:x.code===code?x.navDate||"":""};
     if(!o.name)return;
     if(use){try{const r=await navOf(code);o.nav=r.nav;o.navDate=r.date;o.value=+(u*r.nav).toFixed(2);localStorage.setItem("pxAt",String(Date.now()))}catch(err){alert("Could not fetch the latest NAV ("+err.message+"), so it was saved with the value you entered. Use Refresh when you are online.")}}
     e?Object.assign(x,o):S.assets.push(o);sv()};
@@ -1121,6 +1188,25 @@ async function report(){
   const b=await new Promise(r=>c.toBlob(r,"image/png"));await shareFile(new File([b],"report-"+m+".png",{type:"image/png"}));
 }
 
+/* v9 convenience: search is read-only until a record is selected. */
+function v9Quick(type){
+ if(!S.accounts.length){alert("Add an account first.");return}
+ txForm();const b=document.querySelector(`#form [data-ty="${type}"]`);if(b)b.click();
+}
+function v9Search(){
+ open_(`<h3>Search transactions</h3><div class="v9searchrow"><input id="v9sq" type="search" placeholder="Description, account, category, amount…" autocomplete="off" aria-label="Search transactions"><button class="chip" id="v9sclose">Done</button></div><div class="chips" style="margin-top:12px"><button class="chip on" data-v9scope="all">All</button><button class="chip" data-v9scope="OMR">OMR</button><button class="chip" data-v9scope="INR">INR</button><button class="chip" id="v9sr">📎 Receipts</button></div><div class="v9summary" id="v9count"></div><div id="v9results"></div>`);
+ let currency="all",receipt=false;const input=$("#v9sq");
+ const update=()=>{
+  const query=input.value.trim().toLocaleLowerCase();
+  const matches=S.tx.filter(t=>(currency==="all"||g(t,"Currency")===currency)&&(!receipt||S.rk.has(String(tid(t))))&&(!query||[g(t,"Description"),g(t,"Remarks"),g(t,"Category"),g(t,"Subcategory"),g(t,"Account"),g(t,"Amount"),g(t,"Date"),g(t,"Type")].some(v=>String(v).toLocaleLowerCase().includes(query))));
+  $("#v9count").innerHTML=`<span>${matches.length} matching transaction${matches.length===1?"":"s"}</span><span>Showing first ${Math.min(matches.length,80)}</span>`;
+  $("#v9results").innerHTML=matches.slice(0,80).map(t=>`<button class="v9result" data-v9tx="${esc(tid(t))}"><span><b>${esc(g(t,"Description")||g(t,"Category")||g(t,"Type"))}</b><small>${esc(day(t))} · ${esc(g(t,"Account"))}${S.rk.has(String(tid(t)))?" · 📎":""}</small></span><span class="amt">${money(g(t,"Amount"),g(t,"Currency"))}</span></button>`).join("")||'<p class="msg">No matching transactions</p>';
+  document.querySelectorAll("#v9results [data-v9tx]").forEach(b=>b.onclick=()=>{const t=S.tx.find(t=>String(tid(t))===b.dataset.v9tx);if(t)txForm(t)});
+ };
+ input.oninput=update;$("#v9sclose").onclick=close_;
+ document.querySelectorAll("#form [data-v9scope]").forEach(b=>b.onclick=()=>{currency=b.dataset.v9scope;document.querySelectorAll("#form [data-v9scope]").forEach(x=>x.classList.toggle("on",x===b));update()});
+ $("#v9sr").onclick=()=>{receipt=!receipt;$("#v9sr").classList.toggle("on",receipt);update()};update();input.focus();
+}
 /* ---------- navigation ---------- */
 function tab(n){
   document.querySelectorAll("section").forEach(s=>s.classList.toggle("on",s.id===n));
@@ -1131,6 +1217,9 @@ document.querySelectorAll("nav [data-tab]").forEach(b=>b.onclick=()=>tab(b.datas
 $("#add").onclick=()=>S.accounts.length?txForm():alert("Add an account in Settings first.");
 $("#sync").onclick=load;
 $("#q").oninput=activity;$("#fbtn").onclick=filterForm;
+$("#v9search").onclick=v9Search;
+$("#v9receiptonly").onclick=()=>{v9ReceiptOnly=!v9ReceiptOnly;activity()};
+$("#v9clearsearch").onclick=()=>{$("#q").value="";v9ReceiptOnly=false;activity()};
 document.addEventListener("click",e=>{const el=e.target.closest(".tx");if(!el)return;
   const t=S.tx.find(x=>String(tid(x))===el.dataset.id);if(t)txForm(t)});
 $("#rate").value=localStorage.getItem("rate")||"";$("#autodue").checked=localStorage.getItem("auto")!=="0";$("#autodue").onchange=e=>localStorage.setItem("auto",e.target.checked?"1":"0");$("#rate").onchange=e=>{localStorage.setItem("rate",e.target.value);home()};
