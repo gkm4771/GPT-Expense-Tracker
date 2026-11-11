@@ -1,21 +1,19 @@
-EXPENSES OFFLINE IPHONE — INDEXEDDB UPGRADE (TEST)
+OFFLINE EXPENSES TRACKER — DATA SAFETY RELEASE v4
 
-This version uses IndexedDB for the financial ledger and imports your original
-localStorage db automatically on first launch if no IndexedDB ledger exists.
-The original localStorage db is kept as a recovery mirror when space allows.
-Receipt photos remain in their existing IndexedDB store. All other app features
-and the offline-only (no Google Sheets) design remain intact.
+Added: verified backup export digest record, backup age status, restore preview,
+awaited receipt restore, local IndexedDB snapshots (daily, manual, before restore),
+30-day cleanup for daily snapshots, database integrity checks, storage estimate,
+and bounded change history for transaction/account/budget/recurring operations.
 
-BEFORE INSTALLATION: Export a full JSON backup from the WORKING app and save it
-outside the app (Files/iCloud Drive). Do not delete your original installation.
+Retained: original interface, Google-Sheets-free offline mode, existing IndexedDB
+financial database and receipts, financial tools, NAV refresh and existing reports.
 
-INSTALL: Replace the files in the SAME GitHub Pages deployment, open online,
-close and reopen. Verify accounts, transaction counts, budgets, investments,
-receipts, recurring transactions, loans and IOUs. Test airplane mode and a
-new transaction, then force-close and relaunch to check persistence. Export
-another full backup from the upgraded version.
+NOT YET IMPLEMENTED OR FULLY VERIFIED: complete 32-item feature roadmap,
+external automatic backups, detailed bank statement reconciliation, complete
+audit of edits to separate assets/goals/loans arrays, native scheduled iOS
+notifications, exhaustive financial accuracy and iPhone integration testing.
 
-IMPORTANT: On a different origin, restore your JSON backup manually. IndexedDB
-and localStorage are both subject to iOS website-data eviction; neither is a
-substitute for backups. If IndexedDB cannot open, the app uses its previous
-localStorage fallback and displays a warning. NAV fetching still needs internet.
+WARNING: Local snapshots share the same iPhone storage and do not replace
+exported backups. Always export JSON to Files/iCloud Drive BEFORE upgrading.
+Install on a test GitHub Pages path first, restore a backup and test offline.
+Do not remove the working version until you verify all balances and receipts.

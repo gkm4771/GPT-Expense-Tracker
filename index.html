@@ -113,6 +113,12 @@ nav .plus{width:54px;height:54px;border-radius:27px;background:var(--acc);color:
         <p class="cur" id="lmsg"></p>
       </div>
     </div>
+    <h2>Data protection</h2>
+    <div class="card" id="healthpanel"><div class="cur">Checking local database…</div></div>
+    <div class="card"><button class="btn" id="healthcheck">Check database and balances</button>
+      <button class="btn" id="snapnow" style="margin-top:8px;background:var(--bg);color:var(--ink);border:1px solid var(--line)">Create recovery snapshot</button>
+      <button class="btn" id="snaprestore" style="margin-top:8px;background:var(--bg);color:var(--ink);border:1px solid var(--line)">View recovery snapshots</button>
+      <button class="btn" id="auditview" style="margin-top:8px;background:var(--bg);color:var(--ink);border:1px solid var(--line)">View change history</button></div>
     <h2>Appearance</h2>
     <div class="card"><label>Theme</label><div class="seg" style="grid-template-columns:repeat(3,1fr)"><button data-th="auto">Auto</button><button data-th="dark">Dark</button><button data-th="light">Light</button></div>
     <label>Accent colour</label><div class="chips">
@@ -543,7 +549,8 @@ const L={
       const upd=b.action==="updateTransaction",type=String(b.type||"").trim(),src=acc(b.account),to=String(b.transferToAccount||"").trim(),am=Number(b.amount);
       if(!type)throw new Error("Transaction type is required");
       if(!src)throw new Error("Account not found: "+b.account);
-      if(!(am>0))throw new Error("Amount must be greater than zero");
+      if(!Number.isFinite(am)||!(am>0))throw new Error("Enter a valid amount greater than zero");
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(b.date||""))throw new Error("Choose a valid date");
       if(type==="Transfer"){const dst=acc(to);
         if(!dst)throw new Error("Choose a destination account");
         if(dst===src)throw new Error("Source and destination accounts cannot be the same");
@@ -575,7 +582,7 @@ const L={
     case"restoreTransaction":{const i=d.trash.findIndex(x=>String(x["Transaction ID"])===String(b.transactionId));if(i<0)throw new Error("Not found");const[t]=d.trash.splice(i,1);delete t._del;d.transactions.push(t);assetApply(t,1);break}
     case"setAccountMeta":{const a=acc(b.account);if(!a)throw new Error("Account not found");a["Credit Limit"]=Number(b.limit)||"";a["Statement Day"]=Number(b.stmt)||"";a["Due Day"]=Number(b.due)||"";break}
     default:throw new Error("Unknown action: "+b.action)}
-    DBL.save(d);return{success:true};
+    DBL.save(d);addAudit(b.action,String(b.transactionId||b.accountName||b.category||b.recurringId||""));return{success:true};
   }
 };
 const pushTx=(d,row)=>{assetPlan(row);assetApply(row,1);d.transactions.push(row)};
@@ -598,20 +605,34 @@ function assetApply(t,dir){
   localStorage.setItem("assets",JSON.stringify(S.assets));
 }
 /*LOCAL-END*/
-async function shareFile(f){try{if(navigator.canShare&&navigator.canShare({files:[f]}))await navigator.share({files:[f]});else{const a=document.createElement("a");a.href=window.URL.createObjectURL(f);a.download=f.name;a.click()}}catch(_){}}
+async function shareFile(f){
+  if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f]});return true}
+  const u=window.URL.createObjectURL(f);const a=document.createElement("a");a.href=u;a.download=f.name;a.click();setTimeout(()=>window.URL.revokeObjectURL(u),60000);return true;
+}
 function uiMode(){
   $("#dbk").style.display="";
   const lb=localStorage.getItem("lastbk");
   $("#dbkd").textContent=lb||"never";
   $("#lmsg").textContent=lb?"Last backup: "+lb:"No backup yet. Your data lives only on this iPhone, so back up regularly.";
 }
-$("#bk").onclick=async()=>{await shareFile(new File([JSON.stringify(await fullBackup())],"expenses-backup-"+new Date().toLocaleDateString("en-CA")+".json",{type:"text/plain"}));localStorage.setItem("lastbk",new Date().toLocaleDateString("en-CA"));uiMode();home();bell()};
+$("#bk").onclick=async()=>{try{
+  const data=await fullBackup();const raw=JSON.stringify(data);const digest=await sha256text(raw);
+  const f=new File([raw],"expenses-backup-"+new Date().toLocaleDateString("en-CA")+".json",{type:"application/json"});
+  await shareFile(f);localStorage.setItem("lastbk",new Date().toLocaleDateString("en-CA"));
+  localStorage.setItem("lastBackupCheck",JSON.stringify({sha256:digest,bytes:f.size,transactions:data.transactions.length,receipts:Object.keys(data.receipts||{}).length}));
+  uiMode();home();bell();await healthStatus();
+}catch(e){if(e.name!=="AbortError")alert("Backup was not completed: "+e.message)}};
 $("#rs").onclick=()=>$("#rsf").click();
 $("#rsf").onchange=async e=>{const f=e.target.files[0];if(!f)return;
-  try{const d=JSON.parse(await f.text());if(!Array.isArray(d.accounts)||!Array.isArray(d.transactions))throw new Error("This is not a valid backup file");
-    if(!confirm("Replace all data on this iPhone with this backup?"))return;
-    restoreExtras(d);d.categories=d.categories||DEFCATS;d.budgets=d.budgets||[];d.recurring=d.recurring||[];DBL.save(d);await DBL.persist();await load()}catch(x){alert(x.message)}
-  e.target.value=""};
+  try{const raw=await f.text(),d=JSON.parse(raw);validateBackup(d);
+    const info=`Backup preview\nAccounts: ${d.accounts.length}\nTransactions: ${d.transactions.length}\nBudgets: ${(d.budgets||[]).length}\nRecurring: ${(d.recurring||[]).length}\nReceipts: ${Object.keys(d.receipts||{}).length}\nFile: ${(f.size/1024).toFixed(1)} KB\nSHA-256: ${(await sha256text(raw)).slice(0,16)}…`;
+    if(!confirm(info+"\n\nReplace current local records with this backup?"))return;
+    await createSnapshot("before restore");
+    const receipts=d.receipts||{};restoreExtras(d);d.categories=d.categories||DEFCATS;d.budgets=d.budgets||[];d.recurring=d.recurring||[];
+    DBL.save(d);await DBL.persist();await Promise.all(Object.entries(receipts).map(([k,v])=>rcPut(k,v)));
+    await load();await healthStatus();alert("Restore completed. Check account balances and receipts.");
+  }catch(x){alert("Restore not completed: "+x.message)}finally{e.target.value=""}
+};
 const card=(t,b)=>`<h2>${t}</h2><div class="card">${b}</div>`;
 function hbars(items){if(!items.length)return '<div class="msg">No expenses</div>';const mx=items[0].v;
   return items.map((i,k)=>`<div style="margin:10px 0"><div class="row" style="font-size:14px"><span>${esc(i.n)}</span><b>${money(i.v,"")}</b></div><div class="bar"><i style="width:${i.v/mx*100}%;background:${PAL[k%6]}"></i></div></div>`).join("")}
@@ -684,8 +705,58 @@ async function rcAll(){const ks=await rcOp("getAllKeys"),o={};for(const k of ks)
 function shrink(f){return new Promise(res=>{const im=new Image();im.onload=()=>{const sc=Math.min(1,900/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=im.width*sc;c.height=im.height*sc;c.getContext("2d").drawImage(im,0,0,c.width,c.height);res(c.toDataURL("image/jpeg",.6))};im.src=window.URL.createObjectURL(f)})}
 async function fullBackup(){const d=DBL.load();d.goals=S.goals;d.ious=S.ious;d.loans=S.loans;d.assets=S.assets;d.lowBal=LB();try{d.receipts=await rcAll()}catch(_){}return d}
 function restoreExtras(d){["goals","ious","loans","assets"].forEach(k=>{if(Array.isArray(d[k])){S[k]=d[k];localStorage.setItem(k,JSON.stringify(d[k]))}delete d[k]});
-  if(d.receipts)Object.entries(d.receipts).forEach(([k,v])=>rcPut(k,v));delete d.receipts;if(d.lowBal)localStorage.setItem("lowBal",JSON.stringify(d.lowBal));delete d.lowBal}
+  delete d.receipts;if(d.lowBal)localStorage.setItem("lowBal",JSON.stringify(d.lowBal));delete d.lowBal}
 
+/* Local data safety: snapshots are recovery aids, not off-device backups. */
+async function sha256text(x){const a=new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(x)));return [...a].map(v=>v.toString(16).padStart(2,"0")).join("")}
+function validateBackup(d){
+  if(!d||!Array.isArray(d.accounts)||!Array.isArray(d.transactions))throw new Error("Missing accounts or transactions");
+  if(d.accounts.length>100000||d.transactions.length>1000000)throw new Error("Unexpected backup size");
+  if(d.receipts!==undefined&&(typeof d.receipts!=="object"||!d.receipts||Array.isArray(d.receipts)))throw new Error("Invalid receipt collection");
+  const names=new Set(d.accounts.map(a=>a["Account Name"]));
+  if(names.size!==d.accounts.length)throw new Error("Duplicate account names in backup");
+  for(const t of d.transactions){if(!names.has(t.Account))throw new Error("Transaction references missing account: "+t.Account);if(!Number.isFinite(Number(t.Amount))||Number(t.Amount)<=0)throw new Error("Invalid transaction amount")}
+}
+const safeDB=()=>new Promise((resolve,reject)=>{const q=indexedDB.open("expenses-safety",1);q.onupgradeneeded=()=>{const db=q.result;if(!db.objectStoreNames.contains("snapshots"))db.createObjectStore("snapshots",{keyPath:"id"});if(!db.objectStoreNames.contains("audit"))db.createObjectStore("audit",{keyPath:"id"})};q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error)});
+async function safeStore(name,mode,callback){const db=await safeDB();try{return await new Promise((resolve,reject)=>{const tx=db.transaction(name,mode),store=tx.objectStore(name);let result;try{result=callback(store)}catch(e){reject(e);return}tx.oncomplete=()=>resolve(result);tx.onerror=()=>reject(tx.error)})}finally{db.close()}}
+async function safeRead(name){const db=await safeDB();try{return await new Promise((resolve,reject)=>{const r=db.transaction(name,"readonly").objectStore(name).getAll();r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}finally{db.close()}}
+async function createSnapshot(reason="daily"){
+  await DBL.persist();const date=new Date(),id=date.toISOString();const data=await fullBackup();
+  const existing=await safeRead("snapshots");if(reason==="daily"&&existing.some(x=>x.reason==="daily"&&x.id.slice(0,10)===id.slice(0,10)))return false;
+  const record={id,reason,data,hash:await sha256text(JSON.stringify(data))};
+  await safeStore("snapshots","readwrite",st=>st.put(record));
+  const rows=await safeRead("snapshots");const expired=rows.filter(x=>Date.now()-Date.parse(x.id)>30*864e5&&x.reason==="daily");
+  for(const row of expired)await safeStore("snapshots","readwrite",st=>st.delete(row.id));return true;
+}
+async function addAudit(action,details){try{await safeStore("audit","readwrite",st=>st.put({id:new Date().toISOString()+"-"+Math.random().toString(36).slice(2),action,details}));const rows=await safeRead("audit");for(const row of rows.slice(0,Math.max(0,rows.length-500)))await safeStore("audit","readwrite",st=>st.delete(row.id))}catch(e){console.warn("Audit unavailable",e)}}
+async function healthStatus(){
+  const p=$("#healthpanel");if(!p)return;
+  const d=DBL.load(),acc=new Map(d.accounts.map(a=>[a["Account Name"],a])),ids=new Set(),issues=[];
+  for(const t of d.transactions){const id=String(t["Transaction ID"]||"");if(ids.has(id))issues.push("Duplicate transaction ID");ids.add(id);
+    if(!acc.has(t.Account))issues.push("Missing account: "+t.Account);
+    if(!(Number(t.Amount)>0)||!Number.isFinite(Number(t.Amount)))issues.push("Invalid amount");
+    if(t.Type==="Transfer"&&!acc.has(t["Transfer To Account"]))issues.push("Transfer destination missing");
+    if(t.Type==="Transfer"&&acc.has(t["Transfer To Account"])&&acc.get(t.Account)?.Currency!==acc.get(t["Transfer To Account"])?.Currency&&!(Number(t["To Amount"])>0))issues.push("Cross-currency transfer missing received amount");
+  }
+  let storage="Unavailable",snapshots="Unavailable";
+  try{if(navigator.storage?.estimate){const e=await navigator.storage.estimate();storage=((e.usage||0)/1048576).toFixed(1)+" MB used / "+((e.quota||0)/1048576).toFixed(0)+" MB estimated quota"}}catch(_){}
+  try{snapshots=String((await safeRead("snapshots")).length)}catch(_){}
+  const last=localStorage.getItem("lastbk"),days=last?Math.max(0,Math.floor((Date.now()-new Date(last+"T12:00:00"))/864e5)):999;
+  p.innerHTML=`<div class="row"><b>Local database</b><span class="${DBL.db?"Income":"err"}">${DBL.db?"IndexedDB active":"Fallback storage"}</span></div>
+  <div class="note">${d.accounts.length} accounts · ${d.transactions.length} transactions · ${d.budgets.length} budgets</div>
+  <div class="note">Storage: ${esc(storage)} · Recovery snapshots: ${snapshots}</div>
+  <div class="note ${days>=7?"err":""}">Last exported backup: ${last||"Never"}${days>=7?" — backup recommended":""}</div>
+  <div class="note ${issues.length?"err":"Income"}">${issues.length?issues.length+" potential data issue(s): "+esc([...new Set(issues)].slice(0,3).join("; ")):"Basic transaction integrity checks passed"}</div>
+  <p class="cur">Balance reconciliation: calculated from opening balances and transactions. Compare these balances with your bank statements manually.</p>`;
+}
+$("#healthcheck").onclick=healthStatus;
+$("#snapnow").onclick=async()=>{try{await createSnapshot("manual");await healthStatus();alert("Local snapshot created. This is not an external backup.")}catch(e){alert(e.message)}};
+$("#snaprestore").onclick=async()=>{try{const rows=(await safeRead("snapshots")).reverse();if(!rows.length){alert("No recovery snapshots yet");return}
+  open_(`<h3>Recovery snapshots</h3><p class="cur">Stored on this iPhone; may be lost if iOS clears site data.</p>`+rows.slice(0,40).map((r,i)=>`<button class="chip" data-snap="${i}" style="display:block;margin:8px 0">${esc(r.id.slice(0,19).replace("T"," "))} · ${esc(r.reason)} · ${r.data.transactions.length} transactions</button>`).join(""));
+  document.querySelectorAll("[data-snap]").forEach(b=>b.onclick=async()=>{const r=rows[+b.dataset.snap];if(await sha256text(JSON.stringify(r.data))!==r.hash){alert("Snapshot verification failed");return}if(!confirm("Restore snapshot from "+r.id+"? Current records will be replaced."))return;
+    await createSnapshot("before snapshot restore");const d=structuredClone(r.data),receipts=d.receipts||{};restoreExtras(d);DBL.save(d);await DBL.persist();await Promise.all(Object.entries(receipts).map(([k,v])=>rcPut(k,v)));close_();await load();await healthStatus()})
+}catch(e){alert(e.message)}};
+$("#auditview").onclick=async()=>{try{const rows=(await safeRead("audit")).reverse().slice(0,100);open_(`<h3>Change history</h3>`+(rows.map(x=>`<div class="acc"><b>${esc(x.action)}</b><br><small>${esc(x.id.slice(0,19))} · ${esc(x.details)}</small></div>`).join("")||'<div class="msg">No recorded changes yet</div>'))}catch(e){alert(e.message)}};
 /* passcode */
 const sha=async x=>[...new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode("exp:"+x)))].map(b=>b.toString(16).padStart(2,"0")).join("");
 let pin="",lockMode="unlock",first="",lockMsg="Enter passcode",hid=0;
@@ -1043,6 +1114,7 @@ uiMode();
 
 tab("home");DBL.init().then(async()=>{
   await load();
+  healthStatus().catch(()=>{});createSnapshot("daily").catch(e=>console.warn("Daily snapshot unavailable",e));
   if(DBL.error)alert("IndexedDB could not open. Your app is using its existing local backup storage. Export a backup before continuing.");
 }).catch(e=>alert("Could not initialize local database: "+e.message));
 </script>
