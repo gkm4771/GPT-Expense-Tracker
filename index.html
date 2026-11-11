@@ -98,7 +98,7 @@ nav .plus{width:54px;height:54px;border-radius:27px;background:var(--acc);color:
   <section id="accounts"><div id="acclist"></div><button class="btn" id="newacc2">Add account</button>
     <h2>Savings goals</h2><div class="card" id="goallist"></div><button class="btn" id="newgoal">New goal</button></section>
   <section id="al"><div id="alsum"></div>
-    <h2>Investments</h2><div class="card" id="assetlist"></div><button class="btn" id="newasset">New asset</button>
+    <h2>Investments</h2><div id="portfolioinsights"></div><div class="card" id="assetlist"></div><button class="btn" id="newasset">New asset</button>
     <button class="btn" id="px" style="margin-top:8px;background:var(--bg);color:var(--ink);border:1px solid var(--line)">Refresh mutual fund NAVs</button><p class="cur" style="margin:4px 8px" id="pxmsg"></p>
     <h2>Credit cards</h2><div class="card" id="cclist"></div>
     <h2>Loans and EMIs</h2><div class="card" id="loanlist"></div><button class="btn" id="newloan">New loan</button>
@@ -125,8 +125,8 @@ nav .plus{width:54px;height:54px;border-radius:27px;background:var(--acc);color:
       <button class="chip" data-ac="mint"><i class="dot" style="background:#19b389"></i>Mint</button><button class="chip" data-ac="violet"><i class="dot" style="background:#8b6cf0"></i>Violet</button>
       <button class="chip" data-ac="amber"><i class="dot" style="background:#e09a2b"></i>Amber</button><button class="chip" data-ac="rose"><i class="dot" style="background:#e5637d"></i>Rose</button>
       <button class="chip" data-ac="sky"><i class="dot" style="background:#3d9be0"></i>Sky</button></div></div>
-    <div class="card"><label>Financial accuracy · v5</label>
-      <p class="cur">Transaction date and transfer validation, duplicate recurring/EMI safeguards, and balance reconciliation improvements. Your existing accounts, transactions, and backup remain unchanged.</p>
+    <div class="card"><label>Investment insights · v6</label>
+      <p class="cur">Portfolio overview by currency and asset type, invested-versus-current-value change, available credit, and a loan-payment alert fix. Existing v5 safeguards, records, and backup remain unchanged.</p>
     </div>
     <h2>Security</h2><div class="card"><button class="btn" id="pinbtn">Set passcode</button><button class="btn del" id="pinoff" style="display:none">Remove passcode</button>
     <p class="cur">Locks the app when it opens and after 30 seconds away. If you forget it, the only way back in is deleting the Home Screen app and restoring a backup.</p></div>
@@ -816,7 +816,7 @@ const ccOut=a=>{const b=S.bal.find(x=>x.accountName===a["Account Name"]);return 
 function ccList(){
   const l=ccAccts();
   $("#cclist").innerHTML=l.length?l.map(a=>{const o=ccOut(a),lim=Number(a["Credit Limit"])||0,dd=a["Due Day"]?nextDay(a["Due Day"]):"";
-    return `<div class="acc" data-ac="${esc(a["Account Name"])}"><div class="row"><span>${esc(a["Account Name"])}</span><b class="Expense">${money(o,a.Currency)}</b></div><small>${lim?Math.round(o/lim*100)+"% of "+money(lim,"")+" used":"Tap to set a limit and due day"}${dd?" · due "+dd:""}</small>${lim?`<div class="bar"><i class="${o>lim*.8?"over":""}" style="width:${Math.min(100,o/lim*100)}%"></i></div>`:""}</div>`}).join(""):'<div class="msg">No credit cards. Add an account of type Credit Card.</div>';
+    return `<div class="acc" data-ac="${esc(a["Account Name"])}"><div class="row"><span>${esc(a["Account Name"])}</span><b class="Expense">${money(o,a.Currency)}</b></div><small>${lim?Math.round(o/lim*100)+"% used · "+money(Math.max(0,lim-o),a.Currency)+" available"+(o>lim?" · OVER LIMIT":""):"Tap to set a limit and due day"}${dd?" · due "+dd:""}</small>${lim?`<div class="bar"><i class="${o>lim*.8?"over":""}" style="width:${Math.min(100,o/lim*100)}%"></i></div>`:""}</div>`}).join(""):'<div class="msg">No credit cards. Add an account of type Credit Card.</div>';
 }
 function alRender(){
   let h="";
@@ -875,10 +875,10 @@ async function markPaid(a){
   const x=a.x,today=iso(new Date());if(!x||!confirm("Record "+(x.r.description||"this payment")+" ("+money(x.r.amount,x.r.currency)+") as paid today?"))return;
   try{
     if(x.k==="rec"){const r=x.r;
-      await post({action:"addTransaction",type:r.type,account:r.account,transferToAccount:r.transferToAccount||"",category:r.category||"",subcategory:r.subcategory||"",amount:r.amount,date:today,description:(r.description||"")+" (Recurring)",remarks:"Generated from recurring "+r.recurringId,assetId:r.assetId||""});
+      await post({action:"addTransaction",type:r.type,account:r.account,transferToAccount:r.transferToAccount||"",category:r.category||"",subcategory:r.subcategory||"",amount:r.amount,date:today,description:(r.description||"")+" (Recurring)",remarks:"Generated from recurring "+r.recurringId,assetId:r.assetId||"",generatedKind:"recurring",generatedId:r.recurringId,generatedDate:x.d});
       await post({action:"saveRecurring",recurringId:r.recurringId,type:r.type,account:r.account,transferToAccount:r.transferToAccount||"",category:r.category||"",subcategory:r.subcategory||"",assetId:r.assetId||"",amount:r.amount,description:r.description,frequency:r.frequency,nextDate:nextDate(r.nextDate,r.frequency),active:true});
     }else if(x.k==="loan"){const l=S.loans.find(z=>z.id===x.lid);
-      await post({action:"addTransaction",type:"Expense",account:l.acct,amount:+Number(x.r.amount).toFixed(2),date:today,category:l.cat||"Loan EMI",description:l.name+" EMI",remarks:"Generated from loan "+l.id,generatedKind:"loan",generatedId:l.id,generatedDate:d});
+      await post({action:"addTransaction",type:"Expense",account:l.acct,amount:+Number(x.r.amount).toFixed(2),date:today,category:l.cat||"Loan EMI",description:l.name+" EMI",remarks:"Generated from loan "+l.id,generatedKind:"loan",generatedId:l.id,generatedDate:x.d});
       l.lastPaid=x.d;localStorage.setItem("loans",JSON.stringify(S.loans));
     }
     close_();await load();
@@ -962,7 +962,27 @@ function accDetail(n){
 }
 
 /* assets, trash, calendar file, forecast, year review */
+function portfolioInsights(){
+  const host=$("#portfolioinsights");if(!host)return;
+  const parts=[];
+  for(const c of ["OMR","INR"]){
+    const rows=S.assets.filter(a=>String(a.cur||"").toUpperCase()===c);
+    if(!rows.length)continue;
+    const invested=rows.reduce((n,a)=>n+(Number(a.cost)||0),0);
+    const current=rows.reduce((n,a)=>n+(Number(a.value)||0),0);
+    const delta=current-invested,pct=invested>0?delta/invested*100:null;
+    const types=[...new Set(rows.map(a=>a.type||"Other"))].sort();
+    const typeRows=types.map(t=>{
+      const r=rows.filter(a=>(a.type||"Other")===t),v=r.reduce((n,a)=>n+(Number(a.value)||0),0);
+      return `<div class="acc row"><span>${esc(t)} <small>(${r.length})</small></span><b>${money(v,c)}</b></div>`;
+    }).join("");
+    const last=rows.filter(a=>a.code&&a.navDate).map(a=>a.navDate);
+    parts.push(`<div class="card"><label>${c} investment overview</label><div class="tiles"><div>Amount invested<b>${money(invested,c)}</b></div><div>Current value<b>${money(current,c)}</b></div><div>Value change<b class="${delta<0?"Expense":"Income"}">${delta>=0?"+":""}${money(delta,c)}</b></div><div>Change %<b class="${delta<0?"Expense":"Income"}">${pct===null?"N/A":(pct>=0?"+":"")+pct.toFixed(2)+"%"}</b></div></div><p class="cur">Based on saved asset costs and values; not realized profit, tax return or cash-flow return. ${last.length?"Fund NAV dates may differ between assets.":""}</p><label>Allocation by asset type</label>${typeRows}</div>`);
+  }
+  host.innerHTML=parts.join("")||'<div class="card msg">Add an investment to see portfolio insights.</div>';
+}
 function assetList(){
+  portfolioInsights();
   $("#assetlist").innerHTML=S.assets.length?S.assets.map(a=>`<div class="acc row" data-as="${a.id}"><span>${esc(a.name)}<br><small>${esc(a.type)}${a.units?" · "+a.units+" units":""}${a.cost?" · "+(a.value>=a.cost?"+":"")+Math.round((a.value-a.cost)/a.cost*100)+"%":""}${a.code&&a.nav?" · NAV "+a.nav:""}</small></span><b>${money(a.value,a.cur)}</b></div>`).join(""):'<div class="msg">No assets yet</div>';
   document.querySelectorAll("[data-as]").forEach(el=>el.onclick=()=>assetForm(S.assets.find(z=>z.id===el.dataset.as)));
 }

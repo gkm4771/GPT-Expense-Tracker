@@ -1,17 +1,14 @@
-PERSONAL EXPENSES TRACKER v5 — FINANCIAL ACCURACY TEST
-Based on the user's v4 ZIP. No Google Sheets.
-Changes: calendar date validation, transaction type validation, cross-currency
-transfer received-amount validation, idempotence markers for generated loan
-EMIs and recurring entries, checks against duplicate generated entries,
-reconciliation numeric validation, zero-interest/invalid loan term safeguards.
-Existing app UI and storage/backup code preserved.
+Expenses Tracker v6 — Investment Insights TEST
 
-Before replacing v4: Export a fresh verified backup.
-Test with a separate GitHub Pages deployment and restored backup where possible.
-If updating the same GitHub Pages site, install all files, open online once,
-close/reopen to update service worker cache, then test offline.
-Check transfers (same and cross currency), recurring payments, EMIs, investment
-holdings, accounts, receipts, backups and balance reconciliation.
-No automatic changes to existing transaction records.
-NOT IMPLEMENTED HERE: full accounting audit, realized investment P/L, payment
-processor synchronization, bank statement imports, or external notifications.
+Built from v5. No backend, no Google Sheets. Existing IndexedDB schema unchanged.
+
+New visible features:
+- Investments: OMR and INR separate summaries for invested cost, current value, value change, percentage, and allocation by asset type.
+- Credit cards: available credit and over-limit label (when credit limit set).
+- Settings: v6 info card.
+- Fix: due-loan alert recording used an undefined variable; now records the correct due date.
+- Recurring bill paid from alert now includes a generation marker to avoid duplicates.
+
+Important: P/L is the difference between saved cost and current value, NOT realized P/L. It may be misleading if a user has withdrawals, distributions, or incomplete historical cost. No automatic NAV refresh offline.
+
+Before deployment: back up v5. Install all files, open online once, close/reopen, verify offline, assets, cards, balances, receipts, and backup/restore. Test loan due-alert payment carefully.
