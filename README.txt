@@ -1,19 +1,17 @@
-OFFLINE EXPENSES TRACKER — DATA SAFETY RELEASE v4
+PERSONAL EXPENSES TRACKER v5 — FINANCIAL ACCURACY TEST
+Based on the user's v4 ZIP. No Google Sheets.
+Changes: calendar date validation, transaction type validation, cross-currency
+transfer received-amount validation, idempotence markers for generated loan
+EMIs and recurring entries, checks against duplicate generated entries,
+reconciliation numeric validation, zero-interest/invalid loan term safeguards.
+Existing app UI and storage/backup code preserved.
 
-Added: verified backup export digest record, backup age status, restore preview,
-awaited receipt restore, local IndexedDB snapshots (daily, manual, before restore),
-30-day cleanup for daily snapshots, database integrity checks, storage estimate,
-and bounded change history for transaction/account/budget/recurring operations.
-
-Retained: original interface, Google-Sheets-free offline mode, existing IndexedDB
-financial database and receipts, financial tools, NAV refresh and existing reports.
-
-NOT YET IMPLEMENTED OR FULLY VERIFIED: complete 32-item feature roadmap,
-external automatic backups, detailed bank statement reconciliation, complete
-audit of edits to separate assets/goals/loans arrays, native scheduled iOS
-notifications, exhaustive financial accuracy and iPhone integration testing.
-
-WARNING: Local snapshots share the same iPhone storage and do not replace
-exported backups. Always export JSON to Files/iCloud Drive BEFORE upgrading.
-Install on a test GitHub Pages path first, restore a backup and test offline.
-Do not remove the working version until you verify all balances and receipts.
+Before replacing v4: Export a fresh verified backup.
+Test with a separate GitHub Pages deployment and restored backup where possible.
+If updating the same GitHub Pages site, install all files, open online once,
+close/reopen to update service worker cache, then test offline.
+Check transfers (same and cross currency), recurring payments, EMIs, investment
+holdings, accounts, receipts, backups and balance reconciliation.
+No automatic changes to existing transaction records.
+NOT IMPLEMENTED HERE: full accounting audit, realized investment P/L, payment
+processor synchronization, bank statement imports, or external notifications.

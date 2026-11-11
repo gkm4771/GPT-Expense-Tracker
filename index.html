@@ -125,6 +125,9 @@ nav .plus{width:54px;height:54px;border-radius:27px;background:var(--acc);color:
       <button class="chip" data-ac="mint"><i class="dot" style="background:#19b389"></i>Mint</button><button class="chip" data-ac="violet"><i class="dot" style="background:#8b6cf0"></i>Violet</button>
       <button class="chip" data-ac="amber"><i class="dot" style="background:#e09a2b"></i>Amber</button><button class="chip" data-ac="rose"><i class="dot" style="background:#e5637d"></i>Rose</button>
       <button class="chip" data-ac="sky"><i class="dot" style="background:#3d9be0"></i>Sky</button></div></div>
+    <div class="card"><label>Financial accuracy · v5</label>
+      <p class="cur">Transaction date and transfer validation, duplicate recurring/EMI safeguards, and balance reconciliation improvements. Your existing accounts, transactions, and backup remain unchanged.</p>
+    </div>
     <h2>Security</h2><div class="card"><button class="btn" id="pinbtn">Set passcode</button><button class="btn del" id="pinoff" style="display:none">Remove passcode</button>
     <p class="cur">Locks the app when it opens and after 30 seconds away. If you forget it, the only way back in is deleting the Home Screen app and restoring a backup.</p></div>
     <h2>Recently deleted</h2><div class="card" id="trashlist"></div><p class="cur" style="margin:4px 8px">Deleted transactions are kept for 30 days.</p>
@@ -532,6 +535,14 @@ function nextDate(s,f){const[y,m,d]=s.split("-").map(Number);let D;
   else if(f==="Yearly")D=new Date(y+1,m-1,Math.min(d,new Date(y+1,m,0).getDate()),12);
   else D=new Date(y,m,Math.min(d,new Date(y,m+1,0).getDate()),12);
   return D.toLocaleDateString("en-CA")}
+const validLedgerDate=v=>{
+  if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(String(v||"")))return false;
+  const [y,m,d]=v.split("-").map(Number),x=new Date(y,m-1,d,12);
+  return x.getFullYear()===y&&x.getMonth()===m-1&&x.getDate()===d;
+};
+const generatedExists=(d,kind,id,date)=>d.transactions.some(t=>
+  String(t["Generated Kind"]||"")===kind&&String(t["Generated ID"]||"")===String(id)&&String(t["Generated Date"]||"")===date)
+  ||d.transactions.some(t=>String(t.Remarks||"").includes("Generated from "+kind+" "+id)&&String(t.Date||"").slice(0,10)===date);
 const L={
   get(a){
     const d=DBL.load(),bal={};
@@ -547,15 +558,18 @@ const L={
     switch(b.action){
     case"addTransaction":case"updateTransaction":{
       const upd=b.action==="updateTransaction",type=String(b.type||"").trim(),src=acc(b.account),to=String(b.transferToAccount||"").trim(),am=Number(b.amount);
-      if(!type)throw new Error("Transaction type is required");
+      if(!TYPES.includes(type))throw new Error("Choose a valid transaction type");
       if(!src)throw new Error("Account not found: "+b.account);
       if(!Number.isFinite(am)||!(am>0))throw new Error("Enter a valid amount greater than zero");
       if(!/^\d{4}-\d{2}-\d{2}$/.test(b.date||""))throw new Error("Choose a valid date");
       if(type==="Transfer"){const dst=acc(to);
         if(!dst)throw new Error("Choose a destination account");
         if(dst===src)throw new Error("Source and destination accounts cannot be the same");
-        if(String(dst.Currency).toUpperCase()!==String(src.Currency).toUpperCase()&&!(Number(b.toAmount)>0))throw new Error("Enter the amount received in "+dst.Currency)}
-      const row={"Transaction ID":b.transactionId||gid("TXN"),Date:b.date||new Date().toLocaleDateString("en-CA"),Type:type,Account:src["Account Name"],"Transfer To Account":type==="Transfer"?to:"",Category:b.category||"",Subcategory:b.subcategory||"",Amount:am,Currency:String(src.Currency).toUpperCase(),Description:b.description||"",Remarks:b.remarks||"","Asset ID":(type==="Investment"||type==="Redemption")?(b.assetId||""):"",Units:Number(b.units)||"","To Amount":type==="Transfer"&&Number(b.toAmount)>0?Number(b.toAmount):"","Created At":now,"Updated At":now};
+        if(String(dst.Currency).toUpperCase()!==String(src.Currency).toUpperCase()&&!(Number(b.toAmount)>0))throw new Error("Enter the amount received in "+dst.Currency);
+        if(b.toAmount!==undefined&&b.toAmount!==""&&!(Number(b.toAmount)>0))throw new Error("Received amount must be greater than zero")}
+      const row={"Transaction ID":b.transactionId||gid("TXN"),Date:b.date||new Date().toLocaleDateString("en-CA"),Type:type,Account:src["Account Name"],"Transfer To Account":type==="Transfer"?to:"",Category:b.category||"",Subcategory:b.subcategory||"",Amount:am,Currency:String(src.Currency).toUpperCase(),Description:b.description||"",Remarks:b.remarks||"","Asset ID":(type==="Investment"||type==="Redemption")?(b.assetId||""):"",Units:Number(b.units)||"","To Amount":type==="Transfer"&&Number(b.toAmount)>0?Number(b.toAmount):"","Created At":now,"Updated At":now,"Generated Kind":b.generatedKind||"","Generated ID":b.generatedId||"","Generated Date":b.generatedDate||""};
+      if(!upd&&b.generatedKind&&b.generatedId&&b.generatedDate&&generatedExists(d,String(b.generatedKind),String(b.generatedId),String(b.generatedDate)))
+        return{success:true,duplicate:true};
       if(upd){const i=d.transactions.findIndex(t=>String(t["Transaction ID"])===String(b.transactionId));if(i<0)throw new Error("Transaction not found");row["Created At"]=d.transactions[i]["Created At"]||now;assetApply(d.transactions[i],-1);assetPlan(row);assetApply(row,1);d.transactions[i]=row}
       else{assetPlan(row);assetApply(row,1);d.transactions.push(row)}break}
     case"deleteTransaction":{const i=d.transactions.findIndex(t=>String(t["Transaction ID"])===String(b.transactionId));if(i<0)throw new Error("Transaction not found");const[rm]=d.transactions.splice(i,1);rm._del=Date.now();d.trash.push(rm);assetApply(rm,-1);break}
@@ -576,7 +590,7 @@ const L={
     case"processRecurring":{let n=0;const td=new Date().toLocaleDateString("en-CA");
       d.recurring.forEach(r=>{if(!r.active)return;let k=0;
         while(r.nextDate&&r.nextDate<=td&&k++<240){
-          if(r.nextDate!==r.lastGeneratedDate){pushTx(d,{"Transaction ID":gid("TXN"),"Asset ID":r.assetId||"",Date:r.nextDate,Type:r.type,Account:r.account,"Transfer To Account":r.transferToAccount,Category:r.category,Subcategory:r.subcategory,Amount:r.amount,Currency:r.currency,Description:r.description+" (Recurring)",Remarks:"Generated from recurring "+r.recurringId,"Created At":now,"Updated At":now});n++;r.lastGeneratedDate=r.nextDate}
+          if(r.nextDate!==r.lastGeneratedDate&&!generatedExists(d,"recurring",r.recurringId,r.nextDate)){pushTx(d,{"Transaction ID":gid("TXN"),"Generated Kind":"recurring","Generated ID":r.recurringId,"Generated Date":r.nextDate,"Asset ID":r.assetId||"",Date:r.nextDate,Type:r.type,Account:r.account,"Transfer To Account":r.transferToAccount,Category:r.category,Subcategory:r.subcategory,Amount:r.amount,Currency:r.currency,Description:r.description+" (Recurring)",Remarks:"Generated from recurring "+r.recurringId,"Created At":now,"Updated At":now});n++;r.lastGeneratedDate=r.nextDate}
           r.nextDate=nextDate(r.nextDate,r.frequency)}});
       DBL.save(d);return{success:true,created:n,message:n+" recurring transaction(s) created"}}
     case"restoreTransaction":{const i=d.trash.findIndex(x=>String(x["Transaction ID"])===String(b.transactionId));if(i<0)throw new Error("Not found");const[t]=d.trash.splice(i,1);delete t._del;d.transactions.push(t);assetApply(t,1);break}
@@ -781,7 +795,7 @@ lockUi();if(localStorage.getItem("pin"))showLock("unlock");
 
 /* bills, IOUs, loans */
 function loanState(l){
-  const r=l.rate/1200,n=l.months,P=l.principal,emi=r?P*r*Math.pow(1+r,n)/(Math.pow(1+r,n)-1):P/n,st=new Date(l.start+"T12:00:00"),now=new Date();
+  const r=Math.max(0,Number(l.rate)||0)/1200,n=Math.max(1,Number(l.months)||1),P=Math.max(0,Number(l.principal)||0),emi=r?P*r*Math.pow(1+r,n)/(Math.pow(1+r,n)-1):P/n,st=new Date(l.start+"T12:00:00"),now=new Date();
   let paid=(now.getFullYear()-st.getFullYear())*12+now.getMonth()-st.getMonth()+(now.getDate()>=st.getDate()?0:-1);paid=Math.max(0,Math.min(n,paid));
   let bal=P;for(let i=0;i<paid;i++)bal=bal*(1+r)-emi;bal=Math.max(0,bal);
   return{emi,bal,left:n-paid,pct:Math.round((1-bal/P)*100),end:new Date(st.getFullYear(),st.getMonth()+n,1,12).toLocaleDateString("en-CA").slice(0,7)};
@@ -864,7 +878,7 @@ async function markPaid(a){
       await post({action:"addTransaction",type:r.type,account:r.account,transferToAccount:r.transferToAccount||"",category:r.category||"",subcategory:r.subcategory||"",amount:r.amount,date:today,description:(r.description||"")+" (Recurring)",remarks:"Generated from recurring "+r.recurringId,assetId:r.assetId||""});
       await post({action:"saveRecurring",recurringId:r.recurringId,type:r.type,account:r.account,transferToAccount:r.transferToAccount||"",category:r.category||"",subcategory:r.subcategory||"",assetId:r.assetId||"",amount:r.amount,description:r.description,frequency:r.frequency,nextDate:nextDate(r.nextDate,r.frequency),active:true});
     }else if(x.k==="loan"){const l=S.loans.find(z=>z.id===x.lid);
-      await post({action:"addTransaction",type:"Expense",account:l.acct,amount:+Number(x.r.amount).toFixed(2),date:today,category:l.cat||"Loan EMI",description:l.name+" EMI",remarks:"Generated from loan "+l.id});
+      await post({action:"addTransaction",type:"Expense",account:l.acct,amount:+Number(x.r.amount).toFixed(2),date:today,category:l.cat||"Loan EMI",description:l.name+" EMI",remarks:"Generated from loan "+l.id,generatedKind:"loan",generatedId:l.id,generatedDate:d});
       l.lastPaid=x.d;localStorage.setItem("loans",JSON.stringify(S.loans));
     }
     close_();await load();
@@ -941,7 +955,7 @@ function accDetail(n){
   ${/credit/i.test(b.accountType)?"":`<label>Alert me when the balance falls below</label><input id="lb_a" type="number" inputmode="decimal" placeholder="Leave blank to alert only below zero" value="${LB()[n]??""}"><button class="btn" id="lb_b" style="background:var(--bg);color:var(--ink);border:1px solid var(--line)">Save alert limit</button>`}
   ${cc?`<h2>Credit card</h2><label>Credit limit</label><input id="cc_l" type="number" inputmode="decimal" value="${a["Credit Limit"]||""}"><label>Statement day (1-28)</label><input id="cc_s" type="number" value="${a["Statement Day"]||""}"><label>Payment due day (1-28)</label><input id="cc_d" type="number" value="${a["Due Day"]||""}"><button class="btn" id="cc_b">Save card details</button>`:""}
   <h2>Recent</h2>${txRows(txs.slice(0,15))}`);
-  $("#rc_b").onclick=async()=>{const v=$("#rc_a").value;if(v==="")return;const diff=Number(v)-b.currentBalance;if(Math.abs(diff)<.0005){alert("Already matches.");return}
+  $("#rc_b").onclick=async()=>{const v=$("#rc_a").value;if(v==="")return;const actual=Number(v);if(!Number.isFinite(actual)){alert("Enter a valid balance.");return}const diff=actual-b.currentBalance;if(Math.abs(diff)<.0005){alert("Already matches.");return}
     try{await post({action:"addTransaction",type:diff>0?"Income":"Expense",account:n,amount:Math.abs(diff),date:iso(new Date()),category:"Adjustment",description:"Balance reconciliation"});close_();await load()}catch(x){alert(x.message)}};
   if($("#lb_b"))$("#lb_b").onclick=()=>{const m=LB(),v=$("#lb_a").value;if(v==="")delete m[n];else m[n]=Number(v);localStorage.setItem("lowBal",JSON.stringify(m));close_();bell()};
   if(cc)$("#cc_b").onclick=async()=>{try{await post({action:"setAccountMeta",account:n,limit:$("#cc_l").value,stmt:$("#cc_s").value,due:$("#cc_d").value});close_();await load()}catch(x){alert(x.message)}};
@@ -1053,7 +1067,8 @@ async function processLoans(){
     for(let i=1;i<=l.months;i++){
       const d=iso(new Date(s.getFullYear(),s.getMonth()+i,Math.min(s.getDate(),28),12));
       if(d>td)break;if(l.lastPaid&&d<=l.lastPaid)continue;
-      await post({action:"addTransaction",type:"Expense",account:l.acct,amount:emi,date:d,category:l.cat||"Loan EMI",description:l.name+" EMI",remarks:"Generated from loan "+l.id});
+      if(generatedExists(DBL.load(),"loan",l.id,d)){l.lastPaid=d;localStorage.setItem("loans",JSON.stringify(S.loans));continue;}
+      await post({action:"addTransaction",type:"Expense",account:l.acct,amount:emi,date:d,category:l.cat||"Loan EMI",description:l.name+" EMI",remarks:"Generated from loan "+l.id,generatedKind:"loan",generatedId:l.id,generatedDate:d});
       l.lastPaid=d;n++;localStorage.setItem("loans",JSON.stringify(S.loans));
     }
   }
