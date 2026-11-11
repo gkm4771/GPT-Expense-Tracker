@@ -1,21 +1,21 @@
-EXPENSES — OFFLINE ONLY (NO GOOGLE SHEETS)
-This is a complete test build based on your uploaded index(2).html.
+EXPENSES OFFLINE IPHONE — INDEXEDDB UPGRADE (TEST)
 
-REMOVED: Google Sheets mode, Apps Script URL/key controls, Save and connect,
-Import from Google Sheet, remote sheet fetch/post code, NAV Apps Script fallback.
-Existing local data handling, transactions, budgets, assets, receipts, loans,
-recurring items, backup and restore remain.
+This version uses IndexedDB for the financial ledger and imports your original
+localStorage db automatically on first launch if no IndexedDB ledger exists.
+The original localStorage db is kept as a recovery mirror when space allows.
+Receipt photos remain in their existing IndexedDB store. All other app features
+and the offline-only (no Google Sheets) design remain intact.
 
-IMPORTANT:
-1. Export a fresh full backup from the working app first.
-2. Test this build on the SAME existing GitHub Pages origin/path only after
-   backing up, or use a separate test deployment and restore your JSON.
-3. The old Google Sheet mode is forcibly set to local mode, without importing
-   anything from Sheets. This build NEVER migrates Sheets data automatically.
-4. If installed at a different URL/path, restore your JSON backup manually.
-5. Service worker cache is version v2. After uploading, launch online once,
-   close/reopen, and test in Airplane Mode.
-6. Mutual-fund NAV fetch from mfapi.in still requires internet.
-7. Financial data remains in localStorage and receipts in IndexedDB;
-   a future database migration needs independent validation.
-8. Keep your original app and backup until records and offline operation are verified.
+BEFORE INSTALLATION: Export a full JSON backup from the WORKING app and save it
+outside the app (Files/iCloud Drive). Do not delete your original installation.
+
+INSTALL: Replace the files in the SAME GitHub Pages deployment, open online,
+close and reopen. Verify accounts, transaction counts, budgets, investments,
+receipts, recurring transactions, loans and IOUs. Test airplane mode and a
+new transaction, then force-close and relaunch to check persistence. Export
+another full backup from the upgraded version.
+
+IMPORTANT: On a different origin, restore your JSON backup manually. IndexedDB
+and localStorage are both subject to iOS website-data eviction; neither is a
+substitute for backups. If IndexedDB cannot open, the app uses its previous
+localStorage fallback and displays a warning. NAV fetching still needs internet.

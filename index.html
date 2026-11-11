@@ -159,7 +159,11 @@ localStorage.removeItem("api");localStorage.removeItem("key");localStorage.setIt
 
 /* ---------- API (POST sent as text/plain so Apps Script needs no CORS preflight) ---------- */
 async function get(action,p={}){return L.get(action);}
-async function post(body){return L.post(body);}
+async function post(body){
+  const result=L.post(body);
+  await DBL.persist();
+  return result;
+}
 
 /* ---------- helpers ---------- */
 const g=(o,k)=>o[k]!==undefined?o[k]:"";
@@ -471,7 +475,51 @@ function goalForm(i){
 
 /*LOCAL-START*/
 const DEFCATS=[["Food","Expense"],["Transport","Expense"],["Bills","Expense"],["Rent","Expense"],["Shopping","Expense"],["Health","Expense"],["Entertainment","Expense"],["Other","Expense"],["Salary","Income"],["Other Income","Income"],["Investments","Investment"]].map(([c,t])=>({Category:c,Subcategory:"",Type:t}));
-const DBL={load(){let d=null;try{d=JSON.parse(localStorage.getItem("db"))}catch(_){}return d||{accounts:[],categories:DEFCATS.slice(),transactions:[],budgets:[],recurring:[]}},save(d){localStorage.setItem("db",JSON.stringify(d))}};
+/* IndexedDB is authoritative; existing localStorage is retained as a migration/recovery mirror. */
+const DBL={
+  current:null, pending:Promise.resolve(), ready:false, error:null, db:null,
+  blank(){return {accounts:[],categories:DEFCATS.slice(),transactions:[],budgets:[],recurring:[]}},
+  load(){
+    if(this.current)return structuredClone(this.current);
+    let d=null;try{d=JSON.parse(localStorage.getItem("db"))}catch(_){}
+    return d||this.blank();
+  },
+  save(d){
+    this.current=structuredClone(d);
+    // Preserve a localStorage recovery copy when there is sufficient space.
+    try{localStorage.setItem("db",JSON.stringify(d))}catch(e){console.warn("Recovery mirror unavailable",e)}
+    if(this.db){
+      const snapshot=structuredClone(d);
+      this.pending=this.pending.catch(()=>{}).then(()=>new Promise((resolve,reject)=>{
+        const tx=this.db.transaction("ledger","readwrite");
+        tx.objectStore("ledger").put(snapshot,"main");
+        tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);
+        tx.onabort=()=>reject(tx.error||new Error("Database write aborted"));
+      }));
+    }
+  },
+  async persist(){await this.pending},
+  async init(){
+    try{
+      this.db=await new Promise((resolve,reject)=>{
+        const req=indexedDB.open("expenses-financial",1);
+        req.onupgradeneeded=()=>{if(!req.result.objectStoreNames.contains("ledger"))req.result.createObjectStore("ledger")};
+        req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);
+      });
+      const stored=await new Promise((resolve,reject)=>{
+        const tx=this.db.transaction("ledger","readonly"),req=tx.objectStore("ledger").get("main");
+        req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);
+      });
+      if(stored&&Array.isArray(stored.accounts)&&Array.isArray(stored.transactions)){
+        this.current=stored;
+      }else{
+        // One-time import from the original iPhone localStorage database.
+        this.current=this.load();this.save(this.current);await this.persist();
+      }
+      this.ready=true;
+    }catch(e){this.error=e;console.error("IndexedDB unavailable; using localStorage fallback",e);this.db=null;this.current=this.load();this.ready=true;}
+  }
+};
 const gid=p=>p+Date.now().toString(36)+Math.floor(Math.random()*1e4).toString(36);
 function nextDate(s,f){const[y,m,d]=s.split("-").map(Number);let D;
   if(f==="Weekly")D=new Date(y,m-1,d+7,12);
@@ -562,7 +610,7 @@ $("#rs").onclick=()=>$("#rsf").click();
 $("#rsf").onchange=async e=>{const f=e.target.files[0];if(!f)return;
   try{const d=JSON.parse(await f.text());if(!Array.isArray(d.accounts)||!Array.isArray(d.transactions))throw new Error("This is not a valid backup file");
     if(!confirm("Replace all data on this iPhone with this backup?"))return;
-    restoreExtras(d);d.categories=d.categories||DEFCATS;d.budgets=d.budgets||[];d.recurring=d.recurring||[];DBL.save(d);await load()}catch(x){alert(x.message)}
+    restoreExtras(d);d.categories=d.categories||DEFCATS;d.budgets=d.budgets||[];d.recurring=d.recurring||[];DBL.save(d);await DBL.persist();await load()}catch(x){alert(x.message)}
   e.target.value=""};
 const card=(t,b)=>`<h2>${t}</h2><div class="card">${b}</div>`;
 function hbars(items){if(!items.length)return '<div class="msg">No expenses</div>';const mx=items[0].v;
@@ -993,7 +1041,10 @@ window.addEventListener("online",load);
 if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
 uiMode();
 
-tab("home");load();
+tab("home");DBL.init().then(async()=>{
+  await load();
+  if(DBL.error)alert("IndexedDB could not open. Your app is using its existing local backup storage. Export a backup before continuing.");
+}).catch(e=>alert("Could not initialize local database: "+e.message));
 </script>
 </body>
 </html>
