@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Expenses">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#f3f1ec">
+<link rel="apple-touch-icon" href="./icon-180.png">
+<link rel="manifest" href="./manifest.webmanifest">
+<title>Expenses</title>
+<style>
+:root{--bg:#f3f5f7;--card:#fff;--ink:#12161a;--mute:#76808a;--line:#e5e8ec;--in:#139a72;--out:#dc4a3d;--inv:#4f6fd1;--acc:#19b389;--accrgb:25,179,137;--shadow:0 1px 2px #0000000a,0 8px 24px #0000000d}
+:root[data-theme=dark]{--bg:#0b0e11;--card:#151a1f;--ink:#eef1f4;--mute:#8a949e;--line:#242b32;--in:#3ddc9d;--out:#ff7b6b;--inv:#8aa8ff;--shadow:none}
+@media(prefers-color-scheme:dark){:root[data-theme=auto]{--bg:#0b0e11;--card:#151a1f;--ink:#eef1f4;--mute:#8a949e;--line:#242b32;--in:#3ddc9d;--out:#ff7b6b;--inv:#8aa8ff;--shadow:none}}
+:root[data-accent=violet]{--acc:#8b6cf0;--accrgb:139,108,240}
+:root[data-accent=amber]{--acc:#e09a2b;--accrgb:224,154,43}
+:root[data-accent=rose]{--acc:#e5637d;--accrgb:229,99,125}
+:root[data-accent=sky]{--acc:#3d9be0;--accrgb:61,155,224}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0}
+body{display:flex;flex-direction:column;background:var(--bg);color:var(--ink);font:16px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;font-variant-numeric:tabular-nums;padding-top:env(safe-area-inset-top,0)}
+header{padding:8px 20px 0}.bar{display:flex;align-items:center;justify-content:space-between}
+h1{font-size:32px;font-weight:800;letter-spacing:-.8px;margin:8px 0 4px}
+.bar div{display:flex;gap:8px}
+.ib{background:none;border:0;color:var(--mute);font-size:15px;padding:8px}
+header .ib{position:relative;display:flex;align-items:center;justify-content:center;background:var(--card);box-shadow:var(--shadow);width:42px;height:42px;border-radius:21px;font-size:19px;padding:0;color:var(--ink)}header .ib svg,#drawer svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+main{flex:1;min-height:0;overflow-y:auto;padding:0 16px calc(120px + env(safe-area-inset-bottom,0))}
+section{display:none}section.on{display:block}
+.card{background:var(--card);border-radius:24px;padding:18px;margin:12px 0;box-shadow:var(--shadow)}
+.card.net{background:linear-gradient(145deg,rgba(var(--accrgb),1),rgba(var(--accrgb),.62));color:#fff;box-shadow:0 10px 28px rgba(var(--accrgb),.28)}
+.net .cur,.net .stats{color:#ffffffc4}.net .stats b,.net .Income,.net .Expense,.net .Investment{color:#fff}
+.cur{font-size:13px;color:var(--mute);margin-bottom:2px}
+.big{font-size:38px;font-weight:800;letter-spacing:-1.2px}
+.row{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px;font-size:13px;color:var(--mute)}
+.stats b{display:block;font-size:16px;color:var(--ink);font-weight:650}
+h2{font-size:13px;color:var(--mute);font-weight:650;margin:24px 6px 6px;text-transform:uppercase;letter-spacing:.6px}
+.acc{padding:13px 0;border-top:1px solid var(--line)}.acc:first-child{border:0}.acc small{color:var(--mute)}
+.tx{display:flex;justify-content:space-between;gap:12px;padding:13px 0;border-top:1px solid var(--line)}.tx:first-child{border:0}
+.tx .t{font-weight:600}.tx small{color:var(--mute);display:block}
+.amt{font-weight:650;white-space:nowrap}.Income,.Redemption{color:var(--in)}.Expense{color:var(--out)}.Investment{color:var(--inv)}.Transfer{color:var(--mute)}
+input,select,textarea{width:100%;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:13px;margin:4px 0 12px;-webkit-appearance:none;appearance:none}
+label{font-size:13px;color:var(--mute)}
+.seg{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;background:var(--bg);padding:4px;border-radius:14px;margin-bottom:14px}
+.seg button{border:0;background:none;color:var(--ink);padding:10px 0;border-radius:11px;font:inherit;font-size:14px}
+.seg button.on{background:var(--card);box-shadow:0 1px 4px #0003;font-weight:650;color:var(--acc)}
+.btn{width:100%;border:0;border-radius:16px;padding:15px;font:inherit;font-weight:650;background:var(--acc);color:#fff}
+.btn.del{background:none;color:var(--out);margin-top:6px}
+.bar{height:9px;background:var(--bg);border-radius:5px;margin-top:8px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--acc);border-radius:5px}.bar i.over{background:var(--out)}
+nav{position:fixed;left:14px;right:14px;bottom:calc(10px + env(safe-area-inset-bottom,0));display:flex;justify-content:space-around;align-items:center;background:color-mix(in srgb,var(--card) 80%,transparent);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);border:1px solid var(--line);border-radius:30px;padding:8px 6px;box-shadow:0 10px 30px #0002}
+nav button{background:none;border:0;color:var(--mute);font:inherit;font-size:11px;padding:4px 10px}
+nav button.on{color:var(--acc);font-weight:650}
+nav svg{width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;display:block;margin:0 auto 2px}
+nav .plus{width:54px;height:54px;border-radius:27px;background:var(--acc);color:#fff;font-size:30px;line-height:1;padding:0;margin-top:-26px;box-shadow:0 8px 20px rgba(var(--accrgb),.45)}
+.sheet{position:fixed;inset:0;background:#0007;-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);display:none;align-items:flex-end;z-index:5}
+.sheet.on{display:flex}
+.sheet>div{background:var(--card);width:100%;max-height:92%;overflow-y:auto;border-radius:28px 28px 0 0;padding:18px 18px calc(24px + env(safe-area-inset-bottom,0))}
+.sheet h3{margin:0 0 14px;font-size:20px}
+.msg{padding:30px 10px;text-align:center;color:var(--mute)}.err{color:var(--out)}
+.mrow{display:flex;gap:8px;align-items:center;margin:8px 0}.mrow input{margin:0}
+.fb{width:auto;padding:12px 16px;white-space:nowrap}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 14px}
+.chip{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:20px;padding:7px 13px;font:inherit;font-size:14px}
+.chip.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+.fhead{position:sticky;top:0;z-index:2;background:var(--card);display:flex;justify-content:space-between;align-items:center;margin:-18px -18px 10px;padding:12px 10px 10px;border-bottom:1px solid var(--line)}
+#rs,#imp{background:var(--bg);color:var(--ink);border:1px solid var(--line)}
+.dot{display:inline-block;width:9px;height:9px;border-radius:5px;margin-right:8px}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px}.tiles div{background:var(--bg);border-radius:16px;padding:12px;font-size:12px;color:var(--mute)}.tiles b{display:block;font-size:19px;color:var(--ink);margin-top:2px}
+.heat{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}.heat i{display:block}
+.hd{aspect-ratio:1;border-radius:9px;font-size:11px;display:flex;align-items:center;justify-content:center;font-weight:500}
+.note{padding:6px 0;font-size:14px}
+.badge{position:absolute;top:-4px;right:-4px;min-width:19px;height:19px;padding:0 5px;border-radius:10px;background:var(--out);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center}
+#scrim{position:fixed;inset:0;background:#0006;opacity:0;pointer-events:none;transition:opacity .28s;z-index:14}#scrim.on{opacity:1;pointer-events:auto}
+#drawer{position:fixed;top:0;bottom:0;left:0;width:78%;max-width:320px;background:var(--card);transform:translateX(-104%);transition:transform .28s ease;z-index:15;padding:calc(env(safe-area-inset-top,0px) + 24px) 12px 20px;box-shadow:8px 0 30px #0003}#drawer.on{transform:none}
+#drawer .dt{font-size:13px;color:var(--mute);text-transform:uppercase;letter-spacing:.6px;margin:0 12px 10px;font-weight:650}
+#drawer button{display:flex;align-items:center;gap:14px;width:100%;background:none;border:0;color:var(--ink);font:inherit;font-size:17px;padding:14px 12px;border-radius:14px;text-align:left}#drawer button:active{background:var(--bg)}
+#drawer .badge{position:static;margin-left:auto}
+.s5{grid-template-columns:repeat(5,1fr)}.s5 button{font-size:11.5px;padding:10px 0}
+#lock{position:fixed;inset:0;z-index:20;background:var(--bg);display:none;flex-direction:column;align-items:center;justify-content:center;gap:26px}
+.pad{display:grid;grid-template-columns:repeat(3,76px);gap:14px}.pad button{height:76px;border-radius:38px;border:0;background:var(--card);color:var(--ink);font-size:26px;box-shadow:var(--shadow)}
+.pdots{display:flex;gap:16px}.pdots i{width:15px;height:15px;border-radius:8px;border:2px solid var(--acc)}.pdots i.f{background:var(--acc)}
+</style>
+</head>
+<body>
+<header><div class="bar"><button class="ib" id="menu" aria-label="Menu"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button><div><button class="ib" id="bell" aria-label="Alerts"><svg viewBox="0 0 24 24"><path d="M6 9a6 6 0 0 1 12 0c0 6 2.5 8 2.5 8h-17S6 15 6 9M10 20.5a2 2 0 0 0 4 0"/></svg><span class="badge" id="bellc" style="display:none"></span></button><button class="ib" id="sync">↻</button></div></div><h1 id="title">Home</h1></header>
+<main>
+  <section id="home"></section>
+  <section id="activity">
+    <div class="mrow"><input id="q" type="search" placeholder="Search transactions"><button class="btn fb" id="fbtn">Filter</button></div><div class="cur" id="fsum" style="margin:0 4px 4px"></div><div class="chips" id="sfc"></div>
+    <div class="card" id="txlist"></div>
+  </section>
+  <section id="budgets"></section>
+  <section id="insights"></section>
+  <section id="accounts"><div id="acclist"></div><button class="btn" id="newacc2">Add account</button>
+    <h2>Savings goals</h2><div class="card" id="goallist"></div><button class="btn" id="newgoal">New goal</button></section>
+  <section id="al"><div id="alsum"></div>
+    <h2>Investments</h2><div class="card" id="assetlist"></div><button class="btn" id="newasset">New asset</button>
+    <button class="btn" id="px" style="margin-top:8px;background:var(--bg);color:var(--ink);border:1px solid var(--line)">Refresh mutual fund NAVs</button><p class="cur" style="margin:4px 8px" id="pxmsg"></p>
+    <h2>Credit cards</h2><div class="card" id="cclist"></div>
+    <h2>Loans and EMIs</h2><div class="card" id="loanlist"></div><button class="btn" id="newloan">New loan</button>
+    <h2>IOUs</h2><div class="card" id="ioulist"></div><button class="btn" id="newiou">New IOU</button></section>
+  <section id="more">
+    <div class="card"><label>Where is your data stored?</label>
+    <div class="seg" style="grid-template-columns:1fr 1fr"><button id="m_sheet">Google Sheet</button><button id="m_local">This iPhone only</button></div>
+    <div id="localtools" style="display:none">
+      <button class="btn" id="bk">Back up to Files</button>
+      <button class="btn" id="rs" style="margin-top:8px">Restore from backup file</button>
+      <button class="btn" id="imp" style="margin-top:8px">Import from my Google Sheet</button>
+      <input type="file" id="rsf" accept=".json,.txt,application/json,text/plain" style="display:none">
+      <p class="cur" id="lmsg"></p></div></div>
+    <div class="card"><label>Web app URL</label><input id="url" placeholder="https://script.google.com/macros/s/…/exec" autocapitalize="off" autocorrect="off">
+    <label>Secret key</label><input id="key" type="password" autocapitalize="off" autocorrect="off">
+    <button class="btn" id="saveurl">Save and connect</button><p class="cur" id="conn"></p></div>
+    <h2>Appearance</h2>
+    <div class="card"><label>Theme</label><div class="seg" style="grid-template-columns:repeat(3,1fr)"><button data-th="auto">Auto</button><button data-th="dark">Dark</button><button data-th="light">Light</button></div>
+    <label>Accent colour</label><div class="chips">
+      <button class="chip" data-ac="mint"><i class="dot" style="background:#19b389"></i>Mint</button><button class="chip" data-ac="violet"><i class="dot" style="background:#8b6cf0"></i>Violet</button>
+      <button class="chip" data-ac="amber"><i class="dot" style="background:#e09a2b"></i>Amber</button><button class="chip" data-ac="rose"><i class="dot" style="background:#e5637d"></i>Rose</button>
+      <button class="chip" data-ac="sky"><i class="dot" style="background:#3d9be0"></i>Sky</button></div></div>
+    <h2>Security</h2><div class="card"><button class="btn" id="pinbtn">Set passcode</button><button class="btn del" id="pinoff" style="display:none">Remove passcode</button>
+    <p class="cur">Locks the app when it opens and after 30 seconds away. If you forget it, the only way back in is deleting the Home Screen app and restoring a backup.</p></div>
+    <h2>Recently deleted</h2><div class="card" id="trashlist"></div><p class="cur" style="margin:4px 8px">Deleted transactions are kept for 30 days.</p>
+    <h2>Preferences</h2>
+    <div class="card"><label>Exchange rate: 1 OMR = ? INR</label><input id="rate" type="number" inputmode="decimal" placeholder="e.g. 215"><label><input type="checkbox" id="autodue" style="width:auto;margin-right:8px">Record due recurring items and loan EMIs automatically when I open the app</label></div>
+    <h2>Manage</h2>
+    <div class="card"><button class="btn" id="newacc">Add account</button><button class="btn" id="newcat" style="margin-top:8px">Add category</button></div>
+    <h2>Recurring</h2>
+    <div class="card" id="reclist"></div>
+    <button class="btn" id="newrec">New recurring transaction</button>
+    <button class="btn" id="runrec" style="margin-top:8px">Create due transactions</button>
+  </section>
+</main>
+<nav>
+  <button data-tab="home" class="on"><svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Home</button>
+  <button data-tab="activity"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Activity</button>
+  <button class="plus" id="add" aria-label="Add transaction">+</button>
+  <button data-tab="al"><svg viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5 9-5zM3 13l9 5 9-5"/></svg>Assets</button>
+  <button data-tab="budgets"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3v9l7 4"/></svg>Budgets</button>
+</nav>
+<div class="sheet" id="sheet"><div id="form"></div></div>
+<div id="lock"></div>
+<div id="scrim"></div>
+<aside id="drawer"><div class="dt">Menu</div>
+  <button data-go="more"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2"/></svg>Settings</button>
+  <button data-go="accounts"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="3"/><path d="M16 12h5"/></svg>Accounts</button>
+  <button data-go="insights"><svg viewBox="0 0 24 24"><path d="M3 21h18M6 21V11M12 21V4M18 21v-8"/></svg>Insights</button>
+  <button data-go="alerts"><svg viewBox="0 0 24 24"><path d="M6 9a6 6 0 0 1 12 0c0 6 2.5 8 2.5 8h-17S6 15 6 9M10 20.5a2 2 0 0 0 4 0"/></svg>Alerts<span class="badge" id="dbadge" style="display:none"></span></button>
+  <button data-act="bk" id="dbk"><svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg>Backup now<small id="dbkd" style="margin-left:auto;color:var(--mute);font-size:12px"></small></button>
+</aside>
+
+<script>
+const $=s=>document.querySelector(s), TYPES=["Expense","Income","Investment","Redemption","Transfer"];
+const S={hm:new Date().toISOString().slice(0,7),cc:"OMR",off:false,goals:JSON.parse(localStorage.getItem("goals")||"[]"),ious:JSON.parse(localStorage.getItem("ious")||"[]"),loans:JSON.parse(localStorage.getItem("loans")||"[]"),rk:new Set(),assets:JSON.parse(localStorage.getItem("assets")||"[]"),trash:[],atype:{},f:{type:new Set(),acct:new Set(),atype:new Set(),cur:new Set(),cat:new Set(),from:"",to:"",min:"",max:""},accounts:[],cats:[],tx:[],bal:[],dash:null,bud:[],rec:[],month:new Date().toISOString().slice(0,7)};
+let URL_=localStorage.getItem("api")||"",KEY=localStorage.getItem("key")||"",MODE=localStorage.getItem("mode")||"local";
+
+/* ---------- API (POST sent as text/plain so Apps Script needs no CORS preflight) ---------- */
+async function get(action,p={}){
+  if(MODE==="local")return L.get(action);
+  const u=new window.URL(URL_);u.searchParams.set("action",action);if(KEY)u.searchParams.set("key",KEY);
+  Object.entries(p).forEach(([k,v])=>v&&u.searchParams.set(k,v));
+  const r=await(await fetch(u)).json();if(!r.success)throw new Error(r.error||"Request failed");return r;
+}
+async function post(body){
+  if(MODE==="local")return L.post(body);
+  const r=await(await fetch(URL_,{method:"POST",body:JSON.stringify({...body,key:KEY})})).json();
+  if(!r.success)throw new Error(r.error||"Request failed");return r;
+}
+
+/* ---------- helpers ---------- */
+const g=(o,k)=>o[k]!==undefined?o[k]:"";
+const tid=t=>t["Transaction ID"]||t["ID"]||Object.values(t)[0];
+const money=(n,c)=>(c||"")+" "+Number(n||0).toLocaleString(undefined,{minimumFractionDigits:c==="OMR"?3:2,maximumFractionDigits:c==="OMR"?3:2});
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const day=t=>String(g(t,"Date")).slice(0,10);
+const sign=t=>({Income:"+",Expense:"−",Investment:"−",Redemption:"+",Transfer:""}[g(t,"Type")]||"");
+
+/* ---------- load ---------- */
+function apply(r){
+  const [a,c,t,b,d,bu,rc]=r;
+  S.accounts=a.accounts.filter(x=>String(x.Active).toLowerCase()!=="false");
+  S.cats=c.categories;S.tx=t.transactions.slice().reverse();S.tx.forEach(x=>{x.Currency=String(x.Currency||"").trim().toUpperCase();x.Type=String(x.Type||"").trim()});S.bal=b.balances;S.dash=d;S.bud=bu.budgets;S.rec=rc.recurring;S.trash=(r[7]||{}).trash||[];
+  S.atype=Object.fromEntries(a.accounts.map(x=>[x["Account Name"],x["Account Type"]||""]));render();
+}
+async function flush(){
+  const q=JSON.parse(localStorage.getItem("q")||"[]");if(!q.length)return;const rest=[];
+  for(const b of q){try{await post(b)}catch(e){if(e instanceof TypeError)rest.push(b)}}
+  localStorage.setItem("q",JSON.stringify(rest));
+}
+async function send(b){
+  try{return await post(b)}catch(e){
+    if(e instanceof TypeError&&b.action==="addTransaction"){const q=JSON.parse(localStorage.getItem("q")||"[]");q.push(b);localStorage.setItem("q",JSON.stringify(q));return{queued:true}}
+    throw e}
+}
+async function fetchAll(){
+  try{const A=await get("all");return[{accounts:A.accounts},{categories:A.categories},{transactions:A.transactions},{balances:A.balances},{},{budgets:A.budgets},{recurring:A.recurring},{trash:A.trash||[]}]}
+  catch(e){if(!/Unknown action/.test(e.message))throw e;
+    return Promise.all([get("accounts"),get("categories"),get("transactions"),get("accountBalances"),get("dashboard"),get("budgets"),get("recurring").catch(()=>({recurring:[]}))])}
+}
+async function load(){
+  if(MODE!=="local"&&!URL_){tab("more");$("#conn").textContent="Paste your Apps Script web app URL to begin.";return}
+  $("#sync").textContent="…";
+  try{
+    await flush();
+    const r=await fetchAll();
+    if(MODE!=="local")try{localStorage.setItem("cache",JSON.stringify(r))}catch(_){}
+    S.off=false;apply(r);rcOp("getAllKeys").then(k=>{S.rk=new Set(k.map(String));activity()}).catch(()=>{});autoPx();autoDue();$("#conn").textContent=MODE==="local"?"Using storage on this iPhone":"Connected";
+  }catch(e){
+    const c=localStorage.getItem("cache");
+    if(c){S.off=true;apply(JSON.parse(c));$("#conn").innerHTML='<span class="err">Offline, showing saved data ('+esc(e.message)+')</span>'}
+    else{$("#conn").innerHTML='<span class="err">'+esc(e.message)+'</span>';
+      $("#home").innerHTML='<div class="msg err">Could not load data.<br>'+esc(e.message)+'<br>Check the URL and key.</div>'}
+  }
+  $("#sync").textContent="↻";
+}
+
+/* ---------- render ---------- */
+function render(){home();insights();activity();budgets();recur();goalList();iouList();loanList();assetList();trashList();acctRender();alRender();ccList();bell()}
+const PAL=["#4cc49a","#ee7a66","#7f9fe0","#e5b95c","#b08be0","#8c9590"];
+const spent=(m,cat,cu)=>S.tx.filter(t=>g(t,"Type")==="Expense"&&day(t).slice(0,7)===m&&g(t,"Category")===cat&&g(t,"Currency")===cu).reduce((s,t)=>s+Number(g(t,"Amount")),0);
+const sumM=(m,cu,ty)=>S.tx.filter(t=>day(t).slice(0,7)===m&&g(t,"Currency")===cu&&g(t,"Type")===ty).reduce((s,t)=>s+Number(g(t,"Amount")),0);
+function donut(items){
+  const tot=items.reduce((s,i)=>s+i.v,0);if(!tot)return '<div class="msg">No expenses in this period</div>';
+  const R=48,C=2*Math.PI*R;let off=0;
+  const arcs=items.map((i,k)=>{const len=i.v/tot*C,el=`<circle r="${R}" cx="60" cy="60" fill="none" stroke="${PAL[k%6]}" stroke-width="20" stroke-dasharray="${len} ${C-len}" stroke-dashoffset="${-off}" transform="rotate(-90 60 60)"/>`;off+=len;return el}).join("");
+  const leg=items.map((i,k)=>`<div class="row" style="font-size:14px"><span><i class="dot" style="background:${PAL[k%6]}"></i>${esc(i.n)}</span><b>${Math.round(i.v/tot*100)}%</b></div>`).join("");
+  return `<div style="display:flex;gap:16px;align-items:center"><svg viewBox="0 0 120 120" width="120">${arcs}</svg><div style="flex:1">${leg}</div></div>`;
+}
+function bars(cu){
+  let [y,mo]=(S.hm||new Date().toISOString().slice(0,7)).split("-").map(Number);const ms=[];
+  for(let i=0;i<6;i++){ms.unshift(y+"-"+String(mo).padStart(2,"0"));mo--;if(!mo){mo=12;y--}}
+  const d=ms.map(k=>({k,i:sumM(k,cu,"Income"),e:sumM(k,cu,"Expense")})),mx=Math.max(1,...d.flatMap(x=>[x.i,x.e])),h=v=>v/mx*90;
+  return `<svg viewBox="0 0 300 126" width="100%">${d.map((x,j)=>{const X=j*50+8;return `<rect x="${X}" y="${100-h(x.i)}" width="16" height="${h(x.i)}" rx="3" fill="var(--in)"/><rect x="${X+19}" y="${100-h(x.e)}" width="16" height="${h(x.e)}" rx="3" fill="var(--out)"/><text x="${X+18}" y="118" font-size="10" text-anchor="middle" fill="var(--mute)">${x.k.slice(5)}</text>`}).join("")}</svg><div class="cur"><i class="dot" style="background:var(--in)"></i>Income <i class="dot" style="background:var(--out);margin-left:12px"></i>Spending</div>`;
+}
+function wealth(){
+  const R=Number(localStorage.getItem("rate"))||0,tot={};
+  const rows=["OMR","INR"].map(c=>{
+    const a=S.bal.filter(b=>String(b.currency).toUpperCase()===c).reduce((x,b)=>x+b.currentBalance,0),as=S.assets.filter(z=>z.cur===c).reduce((x,z)=>x+z.value,0),l=S.loans.filter(z=>z.cur===c).reduce((x,z)=>x+loanState(z).bal,0);
+    if(!S.bal.some(b=>String(b.currency).toUpperCase()===c)&&!as&&!l)return"";tot[c]=a+as-l;
+    return `<div class="acc row"><span>${c}<br><small>accounts ${money(a,"")} · investments ${money(as,"")} · loans −${money(l,"")}</small></span><b>${money(tot[c],c)}</b></div>`}).join("");
+  const comb=R&&tot.OMR!==undefined&&tot.INR!==undefined?`<div class="acc row"><span>Combined in OMR<br><small>1 OMR = ${R} INR</small></span><b>${money(tot.OMR+tot.INR/R,"OMR")}</b></div>`:"";
+  return rows+comb;
+}
+function home(){
+  const m=S.hm,ts=S.tx.filter(t=>!m||day(t).slice(0,7)===m),R=Number(localStorage.getItem("rate"))||0,cu=["OMR","INR"];
+  const sm=(c,ty)=>ts.filter(t=>g(t,"Currency")===c&&g(t,"Type")===ty).reduce((s,t)=>s+Number(g(t,"Amount")),0);
+  let h=(!S.accounts.length?'<div class="card msg">No accounts yet. Open the menu, then Accounts, and tap Add account.</div>':"")+(S.off?'<div class="msg err" style="padding:4px">Offline, showing saved data</div>':"")+`<div class="mrow"><input type="month" id="hm" value="${m}"><button class="ib" id="hall">All time</button></div>`;
+  const net={};
+  cu.forEach(c=>{if(!S.tx.some(t=>g(t,"Currency")===c)&&!S.bal.some(b=>String(b.currency).toUpperCase()===c))return;
+    const i=sm(c,"Income"),e=sm(c,"Expense"),v=sm(c,"Investment")-sm(c,"Redemption");net[c]=i-e-v;
+    h+=`<div class="card net"><div class="cur">Net flow, ${c} · ${m||"all time"}</div><div class="big">${money(net[c],"")}</div>
+    <div class="stats"><span>Income<b class="Income">${money(i,"")}</b></span><span>Spent<b class="Expense">${money(e,"")}</b></span><span>Invested<b class="Investment">${money(v,"")}</b></span></div></div>`});
+  if(net.OMR!==undefined&&net.INR!==undefined)h+=R?`<div class="card"><div class="cur">Combined net flow, in OMR · ${m||"all time"}</div><div class="big">${money(net.OMR+net.INR/R,"")}</div></div>`:'<div class="card"><div class="cur">Combined net flow, in OMR</div><div class="msg" style="padding:8px">Set the exchange rate in Settings to see it.</div></div>';
+  const w=wealth();if(w)h+="<h2>Total wealth</h2><div class='card'>"+w+"</div>";
+  h+="<h2>Recent transactions</h2><div class='card'>"+txRows(S.tx.slice(0,6))+"</div>";
+  $("#home").innerHTML=h;
+  $("#hm").onchange=e=>{S.hm=e.target.value;home();insights()};$("#hall").onclick=()=>{S.hm="";home();insights()};
+}
+function txRows(list){
+  if(!list.length)return '<div class="msg">No transactions</div>';
+  return list.map(t=>{const ty=g(t,"Type"),to=g(t,"Transfer To Account");
+    return `<div class="tx" data-id="${esc(tid(t))}"><div><span class="t">${esc(g(t,"Description")||g(t,"Category")||ty)}${S.rk.has(String(tid(t)))?" 📎":""}</span>
+    <small>${day(t)} · ${esc(g(t,"Account"))}${to?" → "+esc(to):""}${g(t,"Category")?" · "+esc(g(t,"Category"))+(g(t,"Subcategory")?" › "+esc(g(t,"Subcategory")):""):""}${g(t,"Units")?" · "+g(t,"Units")+(t["Units Est"]?"~":"")+" units":""}</small></div>
+    <div class="amt ${ty}">${sign(t)}${money(g(t,"Amount"),"")}<small style="text-align:right">${esc(g(t,"Currency"))}</small></div></div>`}).join("");
+}
+function passes(t){
+  const f=S.f,d=day(t),a=Number(g(t,"Amount"));
+  if(f.type.size&&!f.type.has(g(t,"Type")))return false;
+  if(f.acct.size&&!f.acct.has(g(t,"Account")))return false;
+  if(f.atype.size&&!f.atype.has(S.atype[g(t,"Account")]||""))return false;
+  if(f.cur.size&&!f.cur.has(g(t,"Currency")))return false;
+  if(f.cat.size&&!f.cat.has(g(t,"Category")))return false;
+  if(f.from&&d<f.from)return false;if(f.to&&d>f.to)return false;
+  if(f.min!==""&&a<Number(f.min))return false;if(f.max!==""&&a>Number(f.max))return false;
+  return true;
+}
+function nFilters(){const f=S.f;return f.type.size+f.acct.size+f.atype.size+f.cur.size+f.cat.size+(f.from||f.to?1:0)+(f.min!==""||f.max!==""?1:0)}
+function filtered(){const q=$("#q").value.toLowerCase();return S.tx.filter(t=>passes(t)&&(!q||Object.values(t).join(" ").toLowerCase().includes(q)))}
+function activity(){sfChips();
+  const q=$("#q").value.toLowerCase();
+  const list=filtered();
+  const n=nFilters();$("#fbtn").textContent=n?"Filter · "+n:"Filter";
+  const net={};list.forEach(t=>{const c=g(t,"Currency"),y=g(t,"Type"),v=Number(g(t,"Amount"));net[c]=net[c]||0;
+    if(y==="Income")net[c]+=v;else if(y==="Expense"||y==="Investment")net[c]-=v});
+  $("#fsum").textContent=list.length+" transactions"+(n||q?Object.entries(net).map(([c,v])=>" · net "+money(v,c)).join(""):"");
+  $("#txlist").innerHTML=txRows(list.slice(0,300));
+}
+function filterForm(){
+  const f=S.f,uniq=a=>[...new Set(a.filter(Boolean))].sort();
+  const grp=(l,k,vals)=>vals.length?`<label>${l}</label><div class="chips">${vals.map(v=>`<button class="chip ${f[k].has(v)?"on":""}" data-k="${k}" data-v="${esc(v)}">${esc(v)}</button>`).join("")}</div>`:"";
+  open_(`<div class="fhead"><button class="ib" id="fclear">Clear all</button><b>Filters</b><button class="ib" id="fdone" style="color:var(--ink);font-weight:600">Done</button></div>`+(SF.length?`<label>Saved filters (tap ✕ to delete)</label><div class="chips">${SF.map((x,i)=>`<button class="chip" data-sfd="${i}">${esc(x.name)} ✕</button>`).join("")}</div>`:"")+grp("Type","type",TYPES)+grp("Currency","cur",uniq(S.tx.map(t=>g(t,"Currency"))))
+   +grp("Account","acct",uniq(Object.keys(S.atype)))+grp("Category","cat",uniq(S.tx.map(t=>g(t,"Category"))))
+   +`<label>Date range</label><div class="mrow"><input type="date" id="ff" value="${f.from}"><input type="date" id="ft" value="${f.to}"></div>
+   <div class="chips"><button class="chip" data-p="month">This month</button><button class="chip" data-p="30">Last 30 days</button><button class="chip" data-p="year">This year</button></div>
+   <button class="btn" id="fexp" style="background:var(--bg);color:var(--ink);border:1px solid var(--line)">Export results (CSV)</button><button class="btn" id="fsave" style="margin-top:8px;background:var(--bg);color:var(--ink);border:1px solid var(--line)">Save this filter</button>`);
+  document.querySelectorAll("#form [data-k]").forEach(c=>c.onclick=()=>{const set=f[c.dataset.k],v=c.dataset.v;
+    set.has(v)?set.delete(v):set.add(v);c.classList.toggle("on",set.has(v));activity()});
+  const sync=()=>{f.rel="";f.from=$("#ff").value;f.to=$("#ft").value;activity()};
+  ["#ff","#ft"].forEach(i=>$(i).oninput=sync);
+  document.querySelectorAll("#form [data-p]").forEach(c=>c.onclick=()=>{
+    const td=new Date().toLocaleDateString("en-CA"),p=c.dataset.p;
+    $("#ft").value=td;$("#ff").value=p==="month"?td.slice(0,7)+"-01":p==="year"?td.slice(0,4)+"-01-01":new Date(Date.now()-30*864e5).toLocaleDateString("en-CA");sync();f.rel=p});
+  $("#fdone").onclick=close_;$("#fexp").onclick=()=>exportCsv(filtered());
+  $("#fsave").onclick=()=>{const n=prompt("Name this filter");if(!n)return;SF.push({name:n,f:{type:[...f.type],acct:[...f.acct],cur:[...f.cur],cat:[...f.cat],from:f.from,to:f.to,rel:f.rel||""}});localStorage.setItem("sf",JSON.stringify(SF));filterForm();activity()};
+  $("#fclear").onclick=()=>{Object.values(f).forEach(v=>v instanceof Set&&v.clear());f.from=f.to=f.min=f.max=f.rel="";document.querySelectorAll("#form .chip.on").forEach(c=>c.classList.remove("on"));$("#ff").value=$("#ft").value="";activity()};
+}
+function budgets(){
+  const rows=S.bud.filter(b=>b.Month===S.month);
+  let h=`<div class="mrow"><input type="month" id="bm" value="${S.month}"><button class="ib" id="addb">Set budget</button></div>`;
+  h+='<div class="card">'+(rows.map(b=>{
+    const spent=S.tx.filter(t=>g(t,"Type")==="Expense"&&day(t).slice(0,7)===S.month&&g(t,"Category")===b.Category&&g(t,"Currency")===b.Currency).reduce((s,t)=>s+Number(g(t,"Amount")),0);
+    const p=b["Budget Amount"]?spent/b["Budget Amount"]*100:0;
+    return `<div class="acc" data-b="${esc(b.Category)}|${b.Currency}|${b["Budget Amount"]}"><div class="row"><span>${esc(b.Category)}</span><b>${money(spent,"")} / ${money(b["Budget Amount"],b.Currency)}</b></div><div class="bar"><i class="${p>100?"over":""}" style="width:${Math.min(p,100)}%"></i></div></div>`}).join("")||'<div class="msg">No budgets for this month</div>')+"</div>";
+  h+=billsCal();$("#budgets").innerHTML=h;
+  $("#bm").onchange=e=>{S.month=e.target.value||S.month;budgets()};
+  $("#addb").onclick=()=>budgetForm();
+  document.querySelectorAll("[data-b]").forEach(el=>el.onclick=()=>{const[c,cu,a]=el.dataset.b.split("|");budgetForm({c,cu,a})});
+}
+
+/* ---------- forms ---------- */
+function open_(html){$("#form").innerHTML=html;$("#sheet").classList.add("on")}
+function close_(){$("#sheet").classList.remove("on")}
+$("#sheet").onclick=e=>{if(e.target.id==="sheet")close_()};
+
+function txForm(t){
+  const L=JSON.parse(localStorage.getItem("last")||"{}"),edit=!!t,v=k=>t?g(t,k):({Account:L.acc,Category:L.cat,Subcategory:L.sub}[k]||"");let type=edit?v("Type"):(L.type||"Expense");
+  open_(`<h3>${edit?"Edit":"New"} transaction</h3>${edit?"":tplHtml()}
+  <div class="seg s5">${TYPES.map(x=>`<button data-ty="${x}" class="${x===type?"on":""}">${x==="Redemption"?"Redeem":x}</button>`).join("")}</div>
+  <label>Amount</label><input id="f_amt" type="number" inputmode="decimal" step="0.001" value="${v("Amount")}">
+  <label>Account</label><select id="f_acc">${S.accounts.map(a=>`<option ${a["Account Name"]===v("Account")?"selected":""}>${esc(a["Account Name"])} (${esc(a.Currency)})</option>`).join("")}</select>
+  <div id="f_toW"><label>To account</label><select id="f_to"><option value=""></option>${S.accounts.map(a=>`<option value="${esc(a["Account Name"])}" ${a["Account Name"]===v("Transfer To Account")?"selected":""}>${esc(a["Account Name"])}</option>`).join("")}</select></div>
+  <div id="f_xW" style="display:none"><label id="f_xl">Amount received</label><input id="f_xa" type="number" inputmode="decimal" value="${v("To Amount")||""}"></div>
+  <div id="f_catW"><label>Category</label><select id="f_cat"></select></div>
+  <div id="f_subW"><label>Subcategory</label><select id="f_sub"></select></div>
+  ${MODE==="local"?`<div id="f_asW"><label id="f_asl">Invest into</label><select id="f_as"><option value="">None</option>${S.assets.map(a=>`<option value="${a.id}" ${a.id===v("Asset ID")?"selected":""}>${esc(a.name)}</option>`).join("")}<option value="__new">+ New asset…</option></select></div><div id="f_unW"><label>Units (leave blank to estimate from the latest NAV)</label><input id="f_un" type="number" inputmode="decimal" value="${v("Units")||""}"></div>`:""}
+  <label>Date</label><input id="f_date" type="date" value="${v("Date")?day(t):new Date().toLocaleDateString("en-CA")}">
+  <label>Description</label><input id="f_desc" value="${esc(v("Description"))}">
+  <label>Remarks</label><input id="f_rem" value="${esc(v("Remarks"))}">${MODE==="local"?`<label>Receipt photo</label><div id="f_rc"></div><input id="f_rcf" type="file" accept="image/*" style="display:none"><button class="chip" id="f_rcb" type="button">Add photo</button>`:""}
+  <p class="err" id="f_err"></p><button class="btn" id="f_save">${edit?"Save changes":"Add transaction"}</button>
+  ${edit?'<button class="btn del" id="f_del">Delete transaction</button>':""}`);
+  const accName=()=>$("#f_acc").value.replace(/ \([A-Z]{3}\)$/,"");
+  const sync=()=>{
+    document.querySelectorAll("[data-ty]").forEach(b=>b.classList.toggle("on",b.dataset.ty===type));
+    $("#f_toW").style.display=type==="Transfer"?"":"none";$("#f_catW").style.display=type==="Transfer"?"none":"";$("#f_subW").style.display=type==="Transfer"?"none":"";const aw=$("#f_asW");if(aw){const on=type==="Investment"||type==="Redemption";aw.style.display=on?"":"none";$("#f_unW").style.display=on?"":"none";$("#f_asl").textContent=type==="Redemption"?"Redeem from":"Invest into"}
+    const opts=[...new Set(S.cats.filter(c=>String(g(c,"Type")||"Expense")===type).map(c=>g(c,"Category")))];
+    $("#f_cat").innerHTML='<option value=""></option>'+opts.map(o=>`<option ${o===v("Category")?"selected":""}>${esc(o)}</option>`).join("");
+    subSync(v("Subcategory"));xSync();
+  };
+  function subSync(sel){
+    const c=$("#f_cat").value,subs=[...new Set(S.cats.filter(x=>String(g(x,"Type")||"Expense")===type&&g(x,"Category")===c).map(x=>g(x,"Subcategory")).filter(Boolean))];
+    $("#f_sub").innerHTML='<option value=""></option>'+subs.map(o=>`<option ${o===sel?"selected":""}>${esc(o)}</option>`).join("");
+  }
+  document.querySelectorAll("[data-ty]").forEach(b=>b.onclick=()=>{type=b.dataset.ty;sync()});sync();$("#f_cat").onchange=()=>subSync("");
+  function xSync(){const a=S.accounts.find(x=>x["Account Name"]===accName()),b=S.accounts.find(x=>x["Account Name"]===$("#f_to").value),on=type==="Transfer"&&a&&b&&String(a.Currency).toUpperCase()!==String(b.Currency).toUpperCase();
+    $("#f_xW").style.display=on?"":"none";if(on)$("#f_xl").textContent="Amount received in "+b.Currency+(Number($("#f_amt").value)&&Number($("#f_xa").value)?" (rate "+(Number($("#f_xa").value)/Number($("#f_amt").value)).toFixed(4)+")":"")}
+  $("#f_acc").onchange=$("#f_to").onchange=$("#f_xa").oninput=$("#f_amt").oninput=xSync;
+  if($("#f_as"))$("#f_as").onchange=()=>{if($("#f_as").value!=="__new")return;const n=prompt("Name of the new asset");if(!n){$("#f_as").value="";return}
+    const cu=(S.accounts.find(x=>x["Account Name"]===accName())||{}).Currency||"OMR",a={id:gid("AS"),name:n.trim(),type:"Other",cur:String(cu).toUpperCase(),cost:0,value:0};
+    S.assets.push(a);localStorage.setItem("assets",JSON.stringify(S.assets));const o=document.createElement("option");o.value=a.id;o.textContent=a.name;$("#f_as").insertBefore(o,$("#f_as").lastElementChild);$("#f_as").value=a.id};
+  const rcId=String(edit?tid(t):gid("TXN"));let rc=null,rcDirty=false;
+  if(MODE==="local"){
+    const show=()=>{$("#f_rc").innerHTML=rc?`<img src="${rc}" style="width:100%;border-radius:14px;margin:6px 0"><button class="chip" id="f_rcx" type="button">Remove photo</button>`:"";$("#f_rcb").textContent=rc?"Replace photo":"Add photo";if(rc)$("#f_rcx").onclick=()=>{rc=null;rcDirty=true;show()}};
+    if(edit)rcGet(rcId).then(v=>{rc=v||null;show()});
+    $("#f_rcb").onclick=()=>$("#f_rcf").click();
+    $("#f_rcf").onchange=async e=>{if(e.target.files[0]){rc=await shrink(e.target.files[0]);rcDirty=true;show()}};
+  }
+  document.querySelectorAll("[data-tp]").forEach(b=>b.onclick=()=>{const p=TPL[b.dataset.tp];type=p.ty;
+    const o=[...$("#f_acc").options].find(x=>x.text.replace(/ \([A-Z]{3}\)$/,"")===p.acc);if(o)$("#f_acc").value=o.value;
+    sync();$("#f_cat").value=p.cat;subSync(p.sub);$("#f_desc").value=p.desc;$("#f_amt").value=p.amt});
+  $("#f_save").onclick=async()=>{
+    const body={action:edit?"updateTransaction":"addTransaction",transactionId:edit?tid(t):(MODE==="local"?rcId:undefined),type,account:accName(),
+      transferToAccount:type==="Transfer"?$("#f_to").value:"",category:type==="Transfer"?"":$("#f_cat").value,subcategory:type==="Transfer"?"":$("#f_sub").value,
+      amount:Number($("#f_amt").value),toAmount:Number($("#f_xa").value)||undefined,assetId:(type==="Investment"||type==="Redemption")&&$("#f_as")?$("#f_as").value:"",units:$("#f_un")?Number($("#f_un").value)||undefined:undefined,date:$("#f_date").value,description:$("#f_desc").value,remarks:$("#f_rem").value};
+    $("#f_save").disabled=true;
+    try{if(MODE==="local"&&rcDirty){if(rc){await rcPut(rcId,rc);S.rk.add(rcId)}else{await rcDel(rcId);S.rk.delete(rcId)}}if(!edit)localStorage.setItem("last",JSON.stringify({acc:body.account,cat:body.category,sub:body.subcategory,type}));if(!edit){
+      const cu=(S.accounts.find(a=>a["Account Name"]===body.account)||{}).Currency||"";
+      S.tx.unshift({"Transaction ID":"tmp","Date":body.date,Type:type,Account:body.account,"Transfer To Account":body.transferToAccount,Category:body.category,Subcategory:body.subcategory,Amount:body.amount,Currency:String(cu).toUpperCase(),Description:body.description,Remarks:body.remarks});
+      close_();render();
+      send(body).then(r=>r.queued?alert("No connection. Saved on this phone and will sync when you are back online."):afterSave(body)).catch(x=>{alert("Could not save: "+x.message);load()});
+    }else{await send(body);close_();await afterSave(body)}}catch(e){$("#f_err").textContent=e.message;$("#f_save").disabled=false}
+  };
+  if(edit)$("#f_del").onclick=async()=>{if(!confirm("Delete this transaction?"))return;
+    try{await post({action:"deleteTransaction",transactionId:tid(t)});close_();await load()}catch(e){$("#f_err").textContent=e.message}};
+}
+
+function budgetForm(b){
+  const cats=[...new Set(S.cats.filter(c=>String(g(c,"Type")||"Expense")==="Expense").map(c=>g(c,"Category")))];
+  open_(`<h3>Budget for ${S.month}</h3>
+  <label>Category</label><select id="b_c">${cats.map(c=>`<option ${b&&b.c===c?"selected":""}>${esc(c)}</option>`).join("")}</select>
+  <label>Currency</label><select id="b_cu">${["OMR","INR"].map(c=>`<option ${b&&b.cu===c?"selected":""}>${c}</option>`).join("")}</select>
+  <label>Amount</label><input id="b_a" type="number" inputmode="decimal" value="${b?b.a:""}">
+  <p class="err" id="b_err"></p><button class="btn" id="b_save">Save budget</button>
+  ${b?'<button class="btn del" id="b_del">Delete budget</button>':""}`);
+  const key=()=>({month:S.month,category:$("#b_c").value,currency:$("#b_cu").value});
+  $("#b_save").onclick=async()=>{try{await post({action:"saveBudget",...key(),budgetAmount:Number($("#b_a").value)});close_();await load()}catch(e){$("#b_err").textContent=e.message}};
+  if(b)$("#b_del").onclick=async()=>{try{await post({action:"deleteBudget",...key()});close_();await load()}catch(e){$("#b_err").textContent=e.message}};
+}
+
+function recur(){
+  $("#reclist").innerHTML=S.rec.length?S.rec.map(r=>`<div class="acc row" data-r="${esc(r.recurringId)}"><div>${esc(r.description||r.category||r.type)}<br><small>${r.frequency} · next ${r.nextDate}${r.active?"":" · paused"}</small></div><b class="${r.type}">${money(r.amount,r.currency)}</b></div>`).join(""):'<div class="msg">No recurring items</div>';
+  document.querySelectorAll("[data-r]").forEach(el=>el.onclick=()=>recForm(S.rec.find(x=>x.recurringId===el.dataset.r)));
+}
+function recForm(r){
+  const e=!!r;r=r||{type:"Expense",frequency:"Monthly",active:true,nextDate:new Date().toLocaleDateString("en-CA")};
+  const opt=(l,sel)=>l.map(x=>`<option ${x===sel?"selected":""}>${esc(x)}</option>`).join("");
+  const names=S.accounts.map(a=>a["Account Name"]);
+  open_(`<h3>${e?"Edit":"New"} recurring transaction</h3>
+  <label>Type</label><select id="r_ty">${opt(TYPES,r.type)}</select>
+  <label>Amount</label><input id="r_amt" type="number" inputmode="decimal" value="${r.amount||""}">
+  <label>Account</label><select id="r_acc">${opt(names,r.account)}</select>
+  <label>To account (transfers only)</label><select id="r_to"><option></option>${opt(names,r.transferToAccount)}</select>
+  <label>Category</label><input id="r_cat" list="cl" value="${esc(r.category||"")}"><datalist id="cl">${[...new Set(S.cats.map(c=>g(c,"Category")))].map(c=>`<option value="${esc(c)}">`).join("")}</datalist>
+  <label>Subcategory</label><input id="r_sub" value="${esc(r.subcategory||"")}">
+  <label>Description</label><input id="r_desc" value="${esc(r.description||"")}">
+  <label>Asset (for investments)</label><select id="r_as"><option value="">None</option>${S.assets.map(a=>`<option value="${a.id}" ${a.id===r.assetId?"selected":""}>${esc(a.name)}</option>`).join("")}</select>
+  <label>Repeats</label><select id="r_fr">${opt(["Weekly","Monthly","Yearly"],r.frequency)}</select>
+  <label>Next date</label><input id="r_date" type="date" value="${r.nextDate}">
+  <label><input type="checkbox" id="r_act" ${r.active?"checked":""} style="width:auto;margin-right:8px">Active</label>
+  <p class="err" id="r_err"></p><button class="btn" id="r_save">Save recurring</button>${e?'<button class="btn del" id="r_del">Delete recurring</button>':""}`);
+  $("#r_save").onclick=async()=>{try{await post({action:"saveRecurring",recurringId:e?r.recurringId:undefined,type:$("#r_ty").value,account:$("#r_acc").value,
+    transferToAccount:$("#r_to").value,category:$("#r_cat").value,subcategory:$("#r_sub").value,assetId:$("#r_as").value,amount:Number($("#r_amt").value),description:$("#r_desc").value,
+    frequency:$("#r_fr").value,nextDate:$("#r_date").value,active:$("#r_act").checked});close_();await load()}catch(x){$("#r_err").textContent=x.message}};
+  if(e)$("#r_del").onclick=async()=>{if(!confirm("Delete this recurring item?"))return;try{await post({action:"deleteRecurring",recurringId:r.recurringId});close_();await load()}catch(x){$("#r_err").textContent=x.message}};
+}
+function accForm(){
+  open_(`<h3>Add account</h3><label>Name</label><input id="a_n">
+  <label>Type</label><select id="a_t"><option>Bank</option><option>Cash</option><option>Credit Card</option><option>Wallet</option><option>Investment</option></select>
+  <label>Currency</label><select id="a_c"><option>OMR</option><option>INR</option></select>
+  <label>Opening balance</label><input id="a_b" type="number" inputmode="decimal" value="0">
+  <p class="err" id="a_err"></p><button class="btn" id="a_save">Add account</button>`);
+  $("#a_save").onclick=async()=>{try{await post({action:"addAccount",accountName:$("#a_n").value,accountType:$("#a_t").value,currency:$("#a_c").value,openingBalance:Number($("#a_b").value)});close_();await load()}catch(x){$("#a_err").textContent=x.message}};
+}
+function catForm(){
+  open_(`<h3>Add category</h3><label>Type</label><select id="c_t"><option>Expense</option><option>Income</option><option>Investment</option></select>
+  <label>Category</label><input id="c_c" list="cl2"><datalist id="cl2">${[...new Set(S.cats.map(c=>g(c,"Category")))].map(c=>`<option value="${esc(c)}">`).join("")}</datalist>
+  <label>Subcategory (optional)</label><input id="c_s">
+  <p class="err" id="c_err"></p><button class="btn" id="c_save">Add category</button>`);
+  $("#c_save").onclick=async()=>{try{await post({action:"addCategory",type:$("#c_t").value,category:$("#c_c").value,subcategory:$("#c_s").value});close_();await load()}catch(x){$("#c_err").textContent=x.message}};
+}
+$("#newrec").onclick=()=>S.accounts.length?recForm():alert("Add an account in Settings first.");
+$("#newacc").onclick=()=>(URL_||MODE==="local")?accForm():alert("Add an account in Settings first.");
+$("#newcat").onclick=()=>(URL_||MODE==="local")?catForm():alert("Add an account in Settings first.");
+$("#runrec").onclick=async()=>{try{const r=await post({action:"processRecurring"}),n=await processLoans();alert(r.message+(n?". "+n+" loan EMI(s) recorded":""));await load()}catch(x){alert(x.message)}};
+
+let TPL=[];
+function tpls(){const m={};S.tx.slice(0,300).forEach(t=>{const d=g(t,"Description");if(!d||g(t,"Type")==="Transfer")return;const k=d+"|"+g(t,"Account");
+  m[k]=m[k]||{n:0,ty:g(t,"Type"),acc:g(t,"Account"),cat:g(t,"Category"),sub:g(t,"Subcategory"),desc:d,amt:g(t,"Amount")};m[k].n++});return Object.values(m).sort((a,b)=>b.n-a.n).slice(0,6)}
+function tplHtml(){TPL=tpls();return TPL.length?'<label>Quick add</label><div class="chips">'+TPL.map((p,i)=>`<button class="chip" data-tp="${i}">${esc(p.desc)}</button>`).join("")+"</div>":""}
+async function afterSave(b){
+  await load();
+  if(b.action!=="addTransaction"||b.type!=="Expense")return;
+  const cu=(S.accounts.find(a=>a["Account Name"]===b.account)||{}).Currency,m=String(b.date).slice(0,7);
+  const bd=S.bud.find(x=>x.Month===m&&x.Category===b.category&&x.Currency===cu);if(!bd||!bd["Budget Amount"])return;
+  const sp=spent(m,b.category,cu),p=Math.round(sp/bd["Budget Amount"]*100);
+  if(p>=80)alert(p>100?`Over budget: ${b.category} is at ${p}% (${money(sp,cu)} of ${money(bd["Budget Amount"],cu)}).`:`${b.category} budget is ${p}% used.`);
+}
+async function exportCsv(list){
+  const cols=Object.keys(S.tx[0]||{}),q=v=>'"'+String(v??"").replace(/"/g,'""')+'"';
+  const csv=[cols.map(q).join(",")].concat(list.map(t=>cols.map(c=>q(t[c])).join(","))).join("\n");
+  const f=new File([csv],"transactions.csv",{type:"text/csv"});
+  try{if(navigator.canShare&&navigator.canShare({files:[f]}))await navigator.share({files:[f]});
+  else{const a=document.createElement("a");a.href=window.URL.createObjectURL(f);a.download="transactions.csv";a.click()}}catch(_){}
+}
+function goalList(){
+  $("#goallist").innerHTML=S.goals.length?S.goals.map((x,i)=>`<div class="acc row" data-g="${i}"><span>${esc(x.n)}<br><small>${esc(x.a)}</small></span><b>${money(x.t,"")}</b></div>`).join(""):'<div class="msg">No goals yet</div>';
+  document.querySelectorAll("[data-g]").forEach(el=>el.onclick=()=>goalForm(+el.dataset.g));
+}
+function goalForm(i){
+  const x=S.goals[i]||{n:"",t:"",a:""};
+  open_(`<h3>${S.goals[i]?"Edit":"New"} goal</h3><label>Name</label><input id="g_n" value="${esc(x.n)}"><label>Target amount</label><input id="g_t" type="number" inputmode="decimal" value="${x.t}">
+  <label>Tracked by account balance</label><select id="g_a">${S.accounts.map(a=>`<option ${a["Account Name"]===x.a?"selected":""}>${esc(a["Account Name"])}</option>`).join("")}</select>
+  <button class="btn" id="g_s">Save goal</button>${S.goals[i]?'<button class="btn del" id="g_d">Delete goal</button>':""}`);
+  const sv=()=>{localStorage.setItem("goals",JSON.stringify(S.goals));close_();render()};
+  $("#g_s").onclick=()=>{const o={n:$("#g_n").value.trim(),t:Number($("#g_t").value),a:$("#g_a").value};if(!o.n||!o.t)return;S.goals[i]?S.goals[i]=o:S.goals.push(o);sv()};
+  if(S.goals[i])$("#g_d").onclick=()=>{S.goals.splice(i,1);sv()};
+}
+
+/*LOCAL-START*/
+const DEFCATS=[["Food","Expense"],["Transport","Expense"],["Bills","Expense"],["Rent","Expense"],["Shopping","Expense"],["Health","Expense"],["Entertainment","Expense"],["Other","Expense"],["Salary","Income"],["Other Income","Income"],["Investments","Investment"]].map(([c,t])=>({Category:c,Subcategory:"",Type:t}));
+const DBL={load(){let d=null;try{d=JSON.parse(localStorage.getItem("db"))}catch(_){}return d||{accounts:[],categories:DEFCATS.slice(),transactions:[],budgets:[],recurring:[]}},save(d){localStorage.setItem("db",JSON.stringify(d))}};
+const gid=p=>p+Date.now().toString(36)+Math.floor(Math.random()*1e4).toString(36);
+function nextDate(s,f){const[y,m,d]=s.split("-").map(Number);let D;
+  if(f==="Weekly")D=new Date(y,m-1,d+7,12);
+  else if(f==="Yearly")D=new Date(y+1,m-1,Math.min(d,new Date(y+1,m,0).getDate()),12);
+  else D=new Date(y,m,Math.min(d,new Date(y,m+1,0).getDate()),12);
+  return D.toLocaleDateString("en-CA")}
+const L={
+  get(a){
+    const d=DBL.load(),bal={};
+    d.accounts.forEach(x=>bal[x["Account Name"]]={accountId:x["Account ID"],accountName:x["Account Name"],accountType:x["Account Type"],currency:String(x.Currency).toUpperCase(),openingBalance:Number(x["Opening Balance"])||0,currentBalance:Number(x["Opening Balance"])||0});
+    d.transactions.forEach(t=>{const ty=String(t.Type).toLowerCase(),n=t.Account,to=t["Transfer To Account"],am=Number(t.Amount)||0,cu=String(t.Currency).toUpperCase();
+      if(!bal[n]||am<=0||(cu&&cu!==bal[n].currency))return;
+      if(ty==="income"||ty==="redemption")bal[n].currentBalance+=am;else if(ty==="expense"||ty==="investment")bal[n].currentBalance-=am;
+      else if(ty==="transfer"){bal[n].currentBalance-=am;if(bal[to]&&(bal[to].currency===cu||t["To Amount"]))bal[to].currentBalance+=Number(t["To Amount"])||am}});
+    return{success:true,accounts:d.accounts,categories:d.categories,transactions:d.transactions,balances:Object.values(bal),budgets:d.budgets,recurring:d.recurring,trash:d.trash||[]};
+  },
+  post(b){
+    const d=DBL.load(),acc=n=>d.accounts.find(x=>String(x["Account Name"]).trim()===String(n||"").trim()),now=new Date().toISOString();d.trash=(d.trash||[]).filter(x=>{const k=Date.now()-x._del<2592e6;if(!k)rcDel(String(x["Transaction ID"])).catch(()=>{});return k});
+    switch(b.action){
+    case"addTransaction":case"updateTransaction":{
+      const upd=b.action==="updateTransaction",type=String(b.type||"").trim(),src=acc(b.account),to=String(b.transferToAccount||"").trim(),am=Number(b.amount);
+      if(!type)throw new Error("Transaction type is required");
+      if(!src)throw new Error("Account not found: "+b.account);
+      if(!(am>0))throw new Error("Amount must be greater than zero");
+      if(type==="Transfer"){const dst=acc(to);
+        if(!dst)throw new Error("Choose a destination account");
+        if(dst===src)throw new Error("Source and destination accounts cannot be the same");
+        if(String(dst.Currency).toUpperCase()!==String(src.Currency).toUpperCase()&&!(Number(b.toAmount)>0))throw new Error("Enter the amount received in "+dst.Currency)}
+      const row={"Transaction ID":b.transactionId||gid("TXN"),Date:b.date||new Date().toLocaleDateString("en-CA"),Type:type,Account:src["Account Name"],"Transfer To Account":type==="Transfer"?to:"",Category:b.category||"",Subcategory:b.subcategory||"",Amount:am,Currency:String(src.Currency).toUpperCase(),Description:b.description||"",Remarks:b.remarks||"","Asset ID":(type==="Investment"||type==="Redemption")?(b.assetId||""):"",Units:Number(b.units)||"","To Amount":type==="Transfer"&&Number(b.toAmount)>0?Number(b.toAmount):"","Created At":now,"Updated At":now};
+      if(upd){const i=d.transactions.findIndex(t=>String(t["Transaction ID"])===String(b.transactionId));if(i<0)throw new Error("Transaction not found");row["Created At"]=d.transactions[i]["Created At"]||now;assetApply(d.transactions[i],-1);assetPlan(row);assetApply(row,1);d.transactions[i]=row}
+      else{assetPlan(row);assetApply(row,1);d.transactions.push(row)}break}
+    case"deleteTransaction":{const i=d.transactions.findIndex(t=>String(t["Transaction ID"])===String(b.transactionId));if(i<0)throw new Error("Transaction not found");const[rm]=d.transactions.splice(i,1);rm._del=Date.now();d.trash.push(rm);assetApply(rm,-1);break}
+    case"saveBudget":{const e=d.budgets.find(x=>x.Month===b.month&&x.Category===b.category&&x.Currency===b.currency);
+      if(!(Number(b.budgetAmount)>=0))throw new Error("Budget amount must be 0 or greater");
+      if(e)e["Budget Amount"]=Number(b.budgetAmount);else d.budgets.push({Month:b.month,Category:b.category,"Budget Amount":Number(b.budgetAmount),Currency:b.currency});break}
+    case"deleteBudget":{const i=d.budgets.findIndex(x=>x.Month===b.month&&x.Category===b.category&&x.Currency===b.currency);if(i<0)throw new Error("Budget not found");d.budgets.splice(i,1);break}
+    case"addAccount":{const n=String(b.accountName||"").trim();if(!n)throw new Error("Account name is required");if(acc(n))throw new Error("An account with this name already exists");
+      d.accounts.push({"Account ID":gid("ACC"),"Account Name":n,"Account Type":b.accountType||"Bank","Opening Balance":Number(b.openingBalance)||0,Currency:String(b.currency).toUpperCase(),Active:true});break}
+    case"addCategory":{const c=String(b.category||"").trim(),sc=String(b.subcategory||"").trim();if(!c)throw new Error("Category name is required");
+      if(d.categories.some(x=>String(x.Category).toLowerCase()===c.toLowerCase()&&String(x.Subcategory||"").toLowerCase()===sc.toLowerCase()&&x.Type===b.type))throw new Error("This category already exists");
+      d.categories.push({Category:c,Subcategory:sc,Type:b.type});break}
+    case"saveRecurring":{const a=acc(b.account);if(!a)throw new Error("Choose an account");
+      if(!(Number(b.amount)>0))throw new Error("Amount must be greater than zero");if(!b.nextDate)throw new Error("Choose a valid next date");
+      const r={recurringId:b.recurringId||gid("REC"),assetId:b.assetId||"",type:b.type,account:a["Account Name"],transferToAccount:b.transferToAccount||"",category:b.category||"",subcategory:b.subcategory||"",amount:Number(b.amount),currency:String(a.Currency).toUpperCase(),description:b.description||"",frequency:b.frequency,nextDate:b.nextDate,active:b.active!==false,lastGeneratedDate:""};
+      const i=d.recurring.findIndex(x=>x.recurringId===r.recurringId);if(i>=0){r.lastGeneratedDate=d.recurring[i].lastGeneratedDate;d.recurring[i]=r}else d.recurring.push(r);break}
+    case"deleteRecurring":d.recurring=d.recurring.filter(x=>x.recurringId!==b.recurringId);break;
+    case"processRecurring":{let n=0;const td=new Date().toLocaleDateString("en-CA");
+      d.recurring.forEach(r=>{if(!r.active)return;let k=0;
+        while(r.nextDate&&r.nextDate<=td&&k++<240){
+          if(r.nextDate!==r.lastGeneratedDate){pushTx(d,{"Transaction ID":gid("TXN"),"Asset ID":r.assetId||"",Date:r.nextDate,Type:r.type,Account:r.account,"Transfer To Account":r.transferToAccount,Category:r.category,Subcategory:r.subcategory,Amount:r.amount,Currency:r.currency,Description:r.description+" (Recurring)",Remarks:"Generated from recurring "+r.recurringId,"Created At":now,"Updated At":now});n++;r.lastGeneratedDate=r.nextDate}
+          r.nextDate=nextDate(r.nextDate,r.frequency)}});
+      DBL.save(d);return{success:true,created:n,message:n+" recurring transaction(s) created"}}
+    case"restoreTransaction":{const i=d.trash.findIndex(x=>String(x["Transaction ID"])===String(b.transactionId));if(i<0)throw new Error("Not found");const[t]=d.trash.splice(i,1);delete t._del;d.transactions.push(t);assetApply(t,1);break}
+    case"setAccountMeta":{const a=acc(b.account);if(!a)throw new Error("Account not found");a["Credit Limit"]=Number(b.limit)||"";a["Statement Day"]=Number(b.stmt)||"";a["Due Day"]=Number(b.due)||"";break}
+    default:throw new Error("Unknown action: "+b.action)}
+    DBL.save(d);return{success:true};
+  }
+};
+const pushTx=(d,row)=>{assetPlan(row);assetApply(row,1);d.transactions.push(row)};
+function assetPlan(t){
+  ["Asset Cost","Asset Units","Asset Value","Units Est"].forEach(k=>delete t[k]);
+  const a=S.assets.find(x=>x.id===t["Asset ID"]),sg=t.Type==="Investment"?1:t.Type==="Redemption"?-1:0;
+  if(!a||!sg){if(!sg)t["Asset ID"]="";return}
+  const am=Number(t.Amount)||0;let u=Number(t.Units)||0;const est=!u;
+  if(est&&a.code&&a.nav)u=am/a.nav;
+  if(sg<0)u=Math.min(u,a.units||0);
+  u=+u.toFixed(4);t.Units=u||"";t["Units Est"]=est&&u>0;
+  t["Asset Units"]=sg*u;t["Asset Value"]=sg*am;
+  t["Asset Cost"]=sg>0?am:-Math.min(a.cost||0,(a.units>0&&u>0)?a.cost*u/a.units:(a.value>0?a.cost*Math.min(1,am/a.value):0));
+}
+function assetApply(t,dir){
+  const a=t&&S.assets.find(x=>x.id===t["Asset ID"]);if(!a)return;
+  a.cost=+Math.max(0,(a.cost||0)+dir*(t["Asset Cost"]||0)).toFixed(2);
+  a.units=+Math.max(0,(a.units||0)+dir*(t["Asset Units"]||0)).toFixed(4);
+  a.value=a.code&&a.nav?+(a.units*a.nav).toFixed(2):+Math.max(0,(a.value||0)+dir*(t["Asset Value"]||0)).toFixed(2);
+  localStorage.setItem("assets",JSON.stringify(S.assets));
+}
+/*LOCAL-END*/
+async function shareFile(f){try{if(navigator.canShare&&navigator.canShare({files:[f]}))await navigator.share({files:[f]});else{const a=document.createElement("a");a.href=window.URL.createObjectURL(f);a.download=f.name;a.click()}}catch(_){}}
+function uiMode(){
+  $("#m_local").classList.toggle("on",MODE==="local");$("#m_sheet").classList.toggle("on",MODE!=="local");
+  $("#localtools").style.display=MODE==="local"?"":"none";$("#dbk").style.display=MODE==="local"?"":"none";
+  const lb=localStorage.getItem("lastbk");$("#dbkd").textContent=lb||"never";$("#lmsg").textContent=lb?"Last backup: "+lb:"No backup yet. Your data lives only on this iPhone, so back up regularly.";
+}
+function setMode(m){MODE=m;localStorage.setItem("mode",m);uiMode();load()}
+$("#m_local").onclick=()=>{if(MODE==="local")return;if(!confirm("Store data only on this iPhone? Your Google Sheet stays untouched. You can import it into the app next."))return;
+  setMode("local");try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(_){}};
+$("#m_sheet").onclick=()=>{if(MODE!=="local")return;setMode("sheet")};
+$("#bk").onclick=async()=>{await shareFile(new File([JSON.stringify(await fullBackup())],"expenses-backup-"+new Date().toLocaleDateString("en-CA")+".json",{type:"text/plain"}));localStorage.setItem("lastbk",new Date().toLocaleDateString("en-CA"));uiMode();home();bell()};
+$("#rs").onclick=()=>$("#rsf").click();
+$("#rsf").onchange=async e=>{const f=e.target.files[0];if(!f)return;
+  try{const d=JSON.parse(await f.text());if(!Array.isArray(d.accounts)||!Array.isArray(d.transactions))throw new Error("This is not a valid backup file");
+    if(!confirm("Replace all data on this iPhone with this backup?"))return;
+    restoreExtras(d);d.categories=d.categories||DEFCATS;d.budgets=d.budgets||[];d.recurring=d.recurring||[];DBL.save(d);await load()}catch(x){alert(x.message)}
+  e.target.value=""};
+$("#imp").onclick=async()=>{
+  if(!URL_||!KEY){alert("Enter your Google Sheet URL and key below, tap Save and connect, then try again.");return}
+  if(!confirm("Replace the data on this iPhone with a copy of your Google Sheet?"))return;
+  const m=MODE;MODE="sheet";
+  try{const r=await fetchAll();DBL.save({accounts:r[0].accounts,categories:r[1].categories,transactions:r[2].transactions,budgets:r[5].budgets,recurring:r[6].recurring});MODE=m;await load();alert("Imported "+r[2].transactions.length+" transactions.")}
+  catch(x){MODE=m;alert(x.message)}};
+
+const card=(t,b)=>`<h2>${t}</h2><div class="card">${b}</div>`;
+function hbars(items){if(!items.length)return '<div class="msg">No expenses</div>';const mx=items[0].v;
+  return items.map((i,k)=>`<div style="margin:10px 0"><div class="row" style="font-size:14px"><span>${esc(i.n)}</span><b>${money(i.v,"")}</b></div><div class="bar"><i style="width:${i.v/mx*100}%;background:${PAL[k%6]}"></i></div></div>`).join("")}
+function networth(cc){
+  const op=S.bal.filter(b=>String(b.currency).toUpperCase()===cc).reduce((x,b)=>x+Number(b.openingBalance||0),0);
+  let[y,mo]=(S.hm||new Date().toISOString().slice(0,7)).split("-").map(Number);const ms=[];
+  for(let i=0;i<12;i++){ms.unshift(y+"-"+String(mo).padStart(2,"0"));mo--;if(!mo){mo=12;y--}}
+  const f=t=>({Income:1,Expense:-1,Investment:-1,Redemption:1,Transfer:t["To Amount"]?-1:0}[g(t,"Type")]||0)*Number(g(t,"Amount")),tc=S.tx.filter(t=>g(t,"Currency")===cc),inc=S.tx.filter(t=>t["To Amount"]&&String((S.bal.find(b=>b.accountName===t["Transfer To Account"])||{}).currency).toUpperCase()===cc);
+  return ms.map(k=>({k,v:op+tc.filter(t=>day(t).slice(0,7)<=k).reduce((x,t)=>x+f(t),0)+inc.filter(t=>day(t).slice(0,7)<=k).reduce((x,t)=>x+Number(t["To Amount"]),0)}));
+}
+function line(pts,cc){
+  const vs=pts.map(p=>p.v),mn=Math.min(...vs),r=(Math.max(...vs)-mn)||1,P=pts.map((p,i)=>[10+i*280/(pts.length-1),95-(p.v-mn)/r*80]);
+  const d=P.map((q,i)=>(i?"L":"M")+q[0].toFixed(1)+" "+q[1].toFixed(1)).join(""),e=P[P.length-1];
+  return `<svg viewBox="0 0 300 126" width="100%"><path d="${d}L290 100L10 100Z" fill="var(--acc)" opacity=".16"/><path d="${d}" fill="none" stroke="var(--acc)" stroke-width="2.5" stroke-linejoin="round"/><circle cx="${e[0]}" cy="${e[1]}" r="4.5" fill="var(--acc)"/><text x="10" y="118" font-size="10" fill="var(--mute)">${pts[0].k}</text><text x="290" y="118" font-size="10" text-anchor="end" fill="var(--mute)">${pts[pts.length-1].k}</text></svg><div class="cur">Latest ${money(vs[vs.length-1],cc)}</div>`;
+}
+function weekday(ex){
+  const a=[0,0,0,0,0,0,0];ex.forEach(t=>{a[(new Date(day(t)+"T12:00:00").getDay()+6)%7]+=Number(g(t,"Amount"))});const mx=Math.max(1,...a);
+  return `<svg viewBox="0 0 300 126" width="100%">${a.map((v,i)=>`<rect x="${i*42+10}" y="${100-v/mx*90}" width="30" height="${v/mx*90}" rx="7" fill="var(--acc)" opacity="${v===mx?1:.45}"/><text x="${i*42+25}" y="118" font-size="10" text-anchor="middle" fill="var(--mute)">${"MTWTFSS"[i]}</text>`).join("")}</svg>`;
+}
+function heat(ex,m){
+  const mm=m||new Date().toISOString().slice(0,7),[y,mo]=mm.split("-").map(Number),n=new Date(y,mo,0).getDate(),off=(new Date(y,mo-1,1).getDay()+6)%7,by={};
+  ex.filter(t=>day(t).slice(0,7)===mm).forEach(t=>{const d=+day(t).slice(8,10);by[d]=(by[d]||0)+Number(g(t,"Amount"))});
+  const mx=Math.max(1,...Object.values(by));let c="";for(let i=0;i<off;i++)c+="<i></i>";
+  for(let d=1;d<=n;d++){const v=by[d]||0;c+=`<b class="hd" style="background:rgba(var(--accrgb),${v?(.2+.8*v/mx).toFixed(2):.07});color:${v>mx*.6?"#fff":"var(--ink)"}">${d}</b>`}
+  return `<div class="heat">${c}</div><div class="cur" style="margin-top:8px">${mm}${m?"":" (current month)"}: darker means more spent</div>`;
+}
+function insights(){
+  const m=S.hm,cc=S.cc,now=new Date(),cur=now.toISOString().slice(0,7);
+  const ts=S.tx.filter(t=>g(t,"Currency")===cc&&(!m||day(t).slice(0,7)===m)),ex=ts.filter(t=>g(t,"Type")==="Expense");
+  const tot=l=>l.reduce((x,t)=>x+Number(g(t,"Amount")),0),inc=tot(ts.filter(t=>g(t,"Type")==="Income")),exp=tot(ex);
+  const by={};ex.forEach(t=>{const k=g(t,"Category")||"Other";by[k]=(by[k]||0)+Number(g(t,"Amount"))});
+  const cats=Object.entries(by).map(([n,v])=>({n,v})).sort((a,b)=>b.v-a.v),it=cats.slice(0,5);
+  if(cats.length>5)it.push({n:"Other",v:cats.slice(5).reduce((x,c)=>x+c.v,0)});
+  const dim=m?new Date(+m.slice(0,4),+m.slice(5),0).getDate():30;
+  const days=m?(m===cur?now.getDate():dim):Math.max(1,Math.round((now-new Date(ts.reduce((a,t)=>day(t)<a?day(t):a,"9999-12-31")+"T12:00:00"))/864e5)||1);
+  const big=ex.reduce((a,t)=>!a||Number(g(t,"Amount"))>Number(g(a,"Amount"))?t:a,null),notes=[];
+  if(m){let[y,mo]=m.split("-").map(Number);mo--;if(!mo){mo=12;y--}const pm=y+"-"+String(mo).padStart(2,"0"),prev=sumM(pm,cc,"Expense");
+    if(prev&&exp)notes.push(`Spending is ${Math.round(Math.abs(exp-prev)/prev*100)}% ${exp>prev?"higher":"lower"} than ${pm}.`);
+    if(m===cur&&exp)notes.push(`On track to spend about ${money(exp/days*dim,cc)} this month.`)}
+  let h=`<div class="mrow"><input type="month" id="im" value="${m}"><button class="ib" id="iall">All time</button></div><div class="seg" style="grid-template-columns:1fr 1fr">${["OMR","INR"].map(c=>`<button data-cc="${c}" class="${c===cc?"on":""}">${c}</button>`).join("")}</div>`;
+  h+=card("Summary",`<div class="tiles"><div>Saved<b>${inc?Math.round((inc-exp)/inc*100)+"%":"–"}</b></div><div>Avg per day<b>${money(exp/days,"")}</b></div><div>Spent<b>${money(exp,"")}</b></div><div>Biggest expense<b>${big?money(g(big,"Amount"),""):"–"}</b>${big?esc(g(big,"Description")||g(big,"Category")):""}</div></div>`+notes.map(n=>`<div class="note">${n}</div>`).join(""));
+  h+=card("Where it goes",donut(it))+card("Top categories",hbars(cats.slice(0,6)))+card("Income vs spending, 6 months",bars(cc))+card("Net worth, 12 months",line(networth(cc),cc))+card("Spending by weekday",weekday(ex))+card("Daily spending",heat(ex,m))+card("Cash flow forecast, 90 days",forecastHtml(cc))+'<button class="btn" id="yr" style="margin-top:14px;background:var(--bg);color:var(--ink);border:1px solid var(--line)">Year in review</button>'+'<button class="btn" id="rep" style="margin-top:14px">Share report as image</button>';
+  $("#insights").innerHTML=h;
+  $("#rep").onclick=report;$("#yr").onclick=yearForm;$("#im").onchange=e=>{S.hm=e.target.value;home();insights()};$("#iall").onclick=()=>{S.hm="";home();insights()};
+  document.querySelectorAll("#insights [data-cc]").forEach(b=>b.onclick=()=>{S.cc=b.dataset.cc;insights()});
+}
+function look(){
+  const r=document.documentElement;r.dataset.theme=localStorage.getItem("theme")||"auto";r.dataset.accent=localStorage.getItem("accent")||"mint";
+  document.querySelectorAll("[data-th]").forEach(b=>b.classList.toggle("on",b.dataset.th===r.dataset.theme));
+  document.querySelectorAll("[data-ac]").forEach(b=>b.classList.toggle("on",b.dataset.ac===r.dataset.accent));
+}
+document.querySelectorAll("[data-th]").forEach(b=>b.onclick=()=>{localStorage.setItem("theme",b.dataset.th);look()});
+document.querySelectorAll("[data-ac]").forEach(b=>b.onclick=()=>{localStorage.setItem("accent",b.dataset.ac);look()});
+look();
+const drw=on=>{$("#drawer").classList.toggle("on",on);$("#scrim").classList.toggle("on",on)};
+$("#menu").onclick=()=>drw(true);$("#scrim").onclick=()=>drw(false);$("#bell").onclick=alertsOpen;
+document.querySelectorAll("#drawer [data-go]").forEach(b=>b.onclick=()=>{drw(false);b.dataset.go==="alerts"?alertsOpen():tab(b.dataset.go)});
+$("#newacc2").onclick=()=>(URL_||MODE==="local")?accForm():alert("Connect your sheet first.");
+let ex=null,ey=0;
+document.addEventListener("touchstart",e=>{const t=e.touches[0],on=$("#drawer").classList.contains("on");
+  ex=(!$("#sheet").classList.contains("on")&&$("#lock").style.display!=="flex"&&(t.clientX<24||on))?t.clientX:null;ey=t.clientY},{passive:true});
+document.addEventListener("touchend",e=>{if(ex===null)return;const t=e.changedTouches[0],dx=t.clientX-ex,dy=Math.abs(t.clientY-ey),on=$("#drawer").classList.contains("on");
+  if(dy<50){if(!on&&dx>60)drw(true);else if(on&&dx<-60)drw(false)}ex=null});
+
+/* receipts (IndexedDB) */
+const idb=new Promise((res,rej)=>{const r=indexedDB.open("exp",1);r.onupgradeneeded=()=>r.result.createObjectStore("r");r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});
+const rcOp=async(m,...a)=>{const db=await idb;return new Promise((res,rej)=>{const q=db.transaction("r",m.startsWith("get")?"readonly":"readwrite").objectStore("r")[m](...a);q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error)})};
+const rcPut=(k,v)=>rcOp("put",v,String(k)),rcGet=k=>rcOp("get",String(k)),rcDel=k=>rcOp("delete",String(k));
+async function rcAll(){const ks=await rcOp("getAllKeys"),o={};for(const k of ks)o[k]=await rcGet(k);return o}
+function shrink(f){return new Promise(res=>{const im=new Image();im.onload=()=>{const sc=Math.min(1,900/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=im.width*sc;c.height=im.height*sc;c.getContext("2d").drawImage(im,0,0,c.width,c.height);res(c.toDataURL("image/jpeg",.6))};im.src=window.URL.createObjectURL(f)})}
+async function fullBackup(){const d=DBL.load();d.goals=S.goals;d.ious=S.ious;d.loans=S.loans;d.assets=S.assets;d.lowBal=LB();try{d.receipts=await rcAll()}catch(_){}return d}
+function restoreExtras(d){["goals","ious","loans","assets"].forEach(k=>{if(Array.isArray(d[k])){S[k]=d[k];localStorage.setItem(k,JSON.stringify(d[k]))}delete d[k]});
+  if(d.receipts)Object.entries(d.receipts).forEach(([k,v])=>rcPut(k,v));delete d.receipts;if(d.lowBal)localStorage.setItem("lowBal",JSON.stringify(d.lowBal));delete d.lowBal}
+
+/* passcode */
+const sha=async x=>[...new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode("exp:"+x)))].map(b=>b.toString(16).padStart(2,"0")).join("");
+let pin="",lockMode="unlock",first="",lockMsg="Enter passcode",hid=0;
+function showLock(mode,msg){lockMode=mode;pin="";lockMsg=msg||"Enter passcode";$("#lock").style.display="flex";drawLock()}
+function drawLock(){
+  $("#lock").innerHTML=`<h2 style="margin:0;text-transform:none;font-size:20px;color:var(--ink);letter-spacing:0">${lockMsg}</h2><div class="pdots">${[0,1,2,3].map(i=>`<i class="${i<pin.length?"f":""}"></i>`).join("")}</div><div class="pad">${[1,2,3,4,5,6,7,8,9,"✕",0,"⌫"].map(k=>`<button data-k="${k}">${k}</button>`).join("")}</div>`;
+  document.querySelectorAll("#lock [data-k]").forEach(b=>b.onclick=()=>pad(b.dataset.k));
+}
+async function pad(k){
+  if(k==="⌫")pin=pin.slice(0,-1);else if(k==="✕"){if(lockMode!=="unlock")$("#lock").style.display="none";return}else if(pin.length<4)pin+=k;
+  drawLock();if(pin.length<4)return;
+  if(lockMode==="unlock"){if(await sha(pin)===localStorage.getItem("pin"))$("#lock").style.display="none";else{pin="";lockMsg="Wrong passcode, try again";drawLock()}}
+  else if(lockMode==="set"){first=pin;pin="";lockMode="confirm";lockMsg="Enter it again to confirm";drawLock()}
+  else if(pin===first){localStorage.setItem("pin",await sha(pin));$("#lock").style.display="none";lockUi()}
+  else{pin="";lockMode="set";lockMsg="Did not match. Choose a passcode";drawLock()}
+}
+function lockUi(){const on=!!localStorage.getItem("pin");$("#pinbtn").textContent=on?"Change passcode":"Set passcode";$("#pinoff").style.display=on?"":"none"}
+$("#pinbtn").onclick=()=>showLock("set","Choose a 4-digit passcode");
+$("#pinoff").onclick=()=>{if(confirm("Remove the passcode?")){localStorage.removeItem("pin");lockUi()}};
+document.addEventListener("visibilitychange",()=>{if(document.hidden)hid=Date.now();else if(localStorage.getItem("pin")&&Date.now()-hid>30000)showLock("unlock")});
+lockUi();if(localStorage.getItem("pin"))showLock("unlock");
+
+/* bills, IOUs, loans */
+function loanState(l){
+  const r=l.rate/1200,n=l.months,P=l.principal,emi=r?P*r*Math.pow(1+r,n)/(Math.pow(1+r,n)-1):P/n,st=new Date(l.start+"T12:00:00"),now=new Date();
+  let paid=(now.getFullYear()-st.getFullYear())*12+now.getMonth()-st.getMonth()+(now.getDate()>=st.getDate()?0:-1);paid=Math.max(0,Math.min(n,paid));
+  let bal=P;for(let i=0;i<paid;i++)bal=bal*(1+r)-emi;bal=Math.max(0,bal);
+  return{emi,bal,left:n-paid,pct:Math.round((1-bal/P)*100),end:new Date(st.getFullYear(),st.getMonth()+n,1,12).toLocaleDateString("en-CA").slice(0,7)};
+}
+function occ(from,to){
+  const out=[];
+  S.rec.filter(r=>r.active).forEach(r=>{let d=r.nextDate,k=0;while(d&&d<=to&&k++<400){if(d>=from)out.push({d,r,k:"rec"});d=nextDate(d,r.frequency)}});
+  S.loans.forEach(l=>{const s=loanState(l),st=new Date(l.start+"T12:00:00");
+    for(let i=1;i<=l.months;i++){const dt=new Date(st.getFullYear(),st.getMonth()+i,Math.min(st.getDate(),28),12).toLocaleDateString("en-CA");
+      if(dt>=from&&dt<=to)out.push({d:dt,k:"loan",lid:l.id,r:{description:l.name+" EMI",amount:s.emi,currency:l.cur,type:"Expense"}})}});
+  S.accounts.filter(a=>a["Due Day"]).forEach(a=>{const bl=S.bal.find(x=>x.accountName===a["Account Name"]),b0=new Date(from+"T12:00:00");
+    for(let k=0;k<14;k++){const dd=new Date(b0.getFullYear(),b0.getMonth()+k,Math.min(+a["Due Day"],28),12).toLocaleDateString("en-CA");
+      if(dd>=from&&dd<=to)out.push({d:dd,k:"cc",r:{description:a["Account Name"]+" card payment",amount:Math.max(0,-(bl?bl.currentBalance:0)),currency:a.Currency,type:"Expense"}})}});
+  return out.sort((a,b)=>a.d<b.d?-1:1);
+}
+const ccAccts=()=>S.accounts.filter(a=>/credit/i.test(a["Account Type"]));
+const ccOut=a=>{const b=S.bal.find(x=>x.accountName===a["Account Name"]);return Math.max(0,-(b?b.currentBalance:0))};
+function ccList(){
+  const l=ccAccts();
+  $("#cclist").innerHTML=l.length?l.map(a=>{const o=ccOut(a),lim=Number(a["Credit Limit"])||0,dd=a["Due Day"]?nextDay(a["Due Day"]):"";
+    return `<div class="acc" data-ac="${esc(a["Account Name"])}"><div class="row"><span>${esc(a["Account Name"])}</span><b class="Expense">${money(o,a.Currency)}</b></div><small>${lim?Math.round(o/lim*100)+"% of "+money(lim,"")+" used":"Tap to set a limit and due day"}${dd?" · due "+dd:""}</small>${lim?`<div class="bar"><i class="${o>lim*.8?"over":""}" style="width:${Math.min(100,o/lim*100)}%"></i></div>`:""}</div>`}).join(""):'<div class="msg">No credit cards. Add an account of type Credit Card.</div>';
+}
+function alRender(){
+  let h="";
+  ["OMR","INR"].forEach(c=>{
+    const as=S.assets.filter(z=>z.cur===c).reduce((x,z)=>x+z.value,0),ln=S.loans.filter(z=>z.cur===c).reduce((x,z)=>x+loanState(z).bal,0),
+      cc=ccAccts().filter(a=>String(a.Currency).toUpperCase()===c).reduce((x,a)=>x+ccOut(a),0),
+      ow=S.ious.filter(z=>!z.done&&z.cur===c&&z.dir==="owe").reduce((x,z)=>x+z.amt,0),od=S.ious.filter(z=>!z.done&&z.cur===c&&z.dir==="owed").reduce((x,z)=>x+z.amt,0);
+    if(as||ln||cc||ow||od)h+=`<h2>${c} summary</h2><div class="card"><div class="tiles"><div>Investments<b>${money(as,"")}</b></div><div>Liabilities<b class="Expense">${money(ln+cc+ow,"")}</b></div><div>Loans<b>${money(ln,"")}</b></div><div>Owed to you<b class="Income">${money(od,"")}</b></div></div></div>`});
+  $("#alsum").innerHTML=h;
+  if(!$("#pxmsg").textContent&&localStorage.getItem("pxAt"))$("#pxmsg").textContent="NAVs updated "+new Date(+localStorage.getItem("pxAt")).toLocaleString();
+}
+function acctRender(){
+  let h="";
+  ["OMR","INR"].forEach(c=>{const l=S.bal.filter(b=>String(b.currency).toUpperCase()===c);if(!l.length)return;
+    h+=`<h2>${c} accounts</h2><div class="card">`+l.map(b=>`<div class="acc row" data-ac="${esc(b.accountName)}"><div>${esc(b.accountName)}<br><small>${esc(b.accountType)}</small></div><b class="${b.currentBalance<0?"Expense":""}">${money(b.currentBalance,"")}</b></div>`).join("")+`<div class="acc row"><b>Total</b><b>${money(l.reduce((x,b)=>x+b.currentBalance,0),c)}</b></div></div>`});
+  $("#acclist").innerHTML=h||'<div class="card msg">No accounts yet. Tap Add account.</div>';
+}
+const LB=()=>JSON.parse(localStorage.getItem("lowBal")||"{}");
+const alHidden=()=>{const m=JSON.parse(localStorage.getItem("alHide")||"{}"),n=Date.now();Object.keys(m).forEach(k=>{if(m[k]<n)delete m[k]});return m};
+function alHide(id,days){const m=alHidden();m[id]=Date.now()+days*864e5;localStorage.setItem("alHide",JSON.stringify(m))}
+function getAlerts(){
+  const a=[],now=new Date(),cm=now.toISOString().slice(0,7),f=iso(now),u=iso(new Date(now.getTime()+7*864e5));
+  S.bud.filter(b=>b.Month===cm&&b["Budget Amount"]).forEach(b=>{const sp=spent(cm,b.Category,b.Currency),p=Math.round(sp/b["Budget Amount"]*100);
+    if(p>=80)a.push({gr:"Budgets",id:"bud:"+cm+":"+b.Category+":"+b.Currency+":"+(p>100?"o":"w"),t:b.Category+" budget",s:p>100?"Over budget ("+p+"%)":p+"% used",r:money(sp,"")+" / "+money(b["Budget Amount"],b.Currency),bad:p>100,go:()=>{close_();tab("budgets")}})});
+  occ(f,u).forEach(x=>{
+    const loan=x.k==="loan"?S.loans.find(z=>z.id===x.lid):null;if(loan&&loan.lastPaid&&x.d<=loan.lastPaid)return;
+    const nm=x.r.description||x.r.category||x.r.type;
+    a.push({gr:"Due this week",id:"bill:"+x.d+":"+nm,t:nm,s:"Due "+x.d,r:money(x.r.amount,x.r.currency),x,paid:!!((x.k==="rec"&&x.d===x.r.nextDate)||(loan&&loan.acct)),
+      go:()=>{if(x.k==="rec"){close_();recForm(x.r)}else if(x.k==="cc"){const c=ccAccts().find(z=>String(x.r.description).startsWith(z["Account Name"]));if(c)accDetail(c["Account Name"])}else{close_();tab("al")}}})});
+  ccAccts().forEach(c=>{const lim=Number(c["Credit Limit"])||0,o=ccOut(c);
+    if(lim&&o/lim>=.8)a.push({gr:"Credit cards",id:"cc:"+c["Account Name"]+":"+cm,t:c["Account Name"],s:Math.round(o/lim*100)+"% of limit used",r:money(o,c.Currency),bad:o>lim,go:()=>accDetail(c["Account Name"])})});
+  const lb=LB();
+  S.bal.filter(b=>!/credit/i.test(b.accountType)).forEach(b=>{const th=lb[b.accountName]!==undefined?Number(lb[b.accountName]):0;
+    if(b.currentBalance<th)a.push({gr:"Accounts",id:"low:"+b.accountName+":"+cm,t:b.accountName,s:th>0?"Below your alert limit of "+money(th,b.currency):"Balance is below zero",r:money(b.currentBalance,b.currency),bad:b.currentBalance<0,go:()=>accDetail(b.accountName)})});
+  if(MODE==="local"){const k=localStorage.getItem("lastbk"),dy=k?Math.floor((Date.now()-new Date(k+"T12:00:00"))/864e5):999;
+    if(dy>=7)a.push({gr:"Backup",id:"bk:"+(k||"none"),t:"Back up your data",s:k?"Last backup "+dy+" days ago":"You have not backed up yet",r:'<button class="chip" data-act="bk">Back up now</button>'})}
+  const hm=alHidden();return a.filter(x=>!hm[x.id]);
+}
+function bell(){const n=getAlerts().length;["#bellc","#dbadge"].forEach(i=>{const el=$(i);el.textContent=n>9?"9+":n;el.style.display=n?"flex":"none"})}
+let ALERTS=[];
+function alertsOpen(){
+  ALERTS=getAlerts();let h="<h3>Alerts</h3>";
+  if(!ALERTS.length)h+='<div class="msg">All clear. Nothing needs your attention.</div>';
+  else[...new Set(ALERTS.map(x=>x.gr))].forEach(gr=>{h+=`<h2>${gr}</h2><div class="card" style="box-shadow:none;background:var(--bg)">`+ALERTS.map((x,i)=>x.gr!==gr?"":
+    `<div class="acc"><div class="row" data-ai="${i}"><span>${esc(x.t)}<br><small>${esc(x.s)}</small></span><b class="${x.bad?"Expense":""}">${x.r}</b></div>${x.id.startsWith("bk:")?"":`<div class="chips" style="margin:8px 0 0">${x.paid?`<button class="chip" data-al="paid" data-ai="${i}">Mark as paid</button>`:""}<button class="chip" data-al="snooze" data-ai="${i}">Snooze 1 day</button><button class="chip" data-al="hide" data-ai="${i}">Hide</button></div>`}</div>`).join("")+"</div>"});
+  const nh=Object.keys(alHidden()).length;
+  open_(h+(nh?`<button class="btn" id="alr" style="margin-top:12px;background:var(--bg);color:var(--ink);border:1px solid var(--line)">Show ${nh} hidden alert(s) again</button>`:"")+'<button class="btn" id="alx" style="margin-top:8px">Close</button>');
+  $("#alx").onclick=close_;if(nh)$("#alr").onclick=()=>{localStorage.removeItem("alHide");alertsOpen();bell()};
+}
+async function alertAct(el){
+  const a=ALERTS[+el.dataset.ai];if(!a)return;const k=el.dataset.al;
+  if(k==="paid"){await markPaid(a);return}
+  alHide(a.id,k==="snooze"?1:90);alertsOpen();bell();
+}
+async function markPaid(a){
+  const x=a.x,today=iso(new Date());if(!x||!confirm("Record "+(x.r.description||"this payment")+" ("+money(x.r.amount,x.r.currency)+") as paid today?"))return;
+  try{
+    if(x.k==="rec"){const r=x.r;
+      await post({action:"addTransaction",type:r.type,account:r.account,transferToAccount:r.transferToAccount||"",category:r.category||"",subcategory:r.subcategory||"",amount:r.amount,date:today,description:(r.description||"")+" (Recurring)",remarks:"Generated from recurring "+r.recurringId,assetId:r.assetId||""});
+      await post({action:"saveRecurring",recurringId:r.recurringId,type:r.type,account:r.account,transferToAccount:r.transferToAccount||"",category:r.category||"",subcategory:r.subcategory||"",assetId:r.assetId||"",amount:r.amount,description:r.description,frequency:r.frequency,nextDate:nextDate(r.nextDate,r.frequency),active:true});
+    }else if(x.k==="loan"){const l=S.loans.find(z=>z.id===x.lid);
+      await post({action:"addTransaction",type:"Expense",account:l.acct,amount:+Number(x.r.amount).toFixed(2),date:today,category:l.cat||"Loan EMI",description:l.name+" EMI",remarks:"Generated from loan "+l.id});
+      l.lastPaid=x.d;localStorage.setItem("loans",JSON.stringify(S.loans));
+    }
+    close_();await load();
+  }catch(e){alert(e.message)}
+}
+function nextDay(dd){const t=new Date(),c=new Date(t.getFullYear(),t.getMonth(),Math.min(+dd,28),12);if(c<new Date(t.getFullYear(),t.getMonth(),t.getDate()))c.setMonth(c.getMonth()+1);return c.toLocaleDateString("en-CA")}
+function billsCal(){
+  const mm=S.month,[y,mo]=mm.split("-").map(Number),n=new Date(y,mo,0).getDate(),off=(new Date(y,mo-1,1).getDay()+6)%7,list=occ(mm+"-01",mm+"-"+String(n).padStart(2,"0")),by={};
+  list.forEach(x=>by[+x.d.slice(8)]=1);let c="";for(let i=0;i<off;i++)c+="<i></i>";
+  for(let d=1;d<=n;d++)c+=`<b class="hd" style="background:${by[d]?"var(--acc)":"var(--bg)"};color:${by[d]?"#fff":"var(--ink)"}">${d}</b>`;
+  return `<h2>Bills in ${mm}</h2><div class="card"><div class="heat">${c}</div><button class="btn" data-act="ics" style="margin:12px 0">Add bills to Calendar (90 days, with alerts)</button>${list.map(x=>`<div class="acc row"><span>${esc(x.r.description||x.r.category||x.r.type)}<br><small>${x.d}</small></span><b>${money(x.r.amount,x.r.currency)}</b></div>`).join("")||'<div class="msg">No recurring bills or EMIs this month</div>'}</div>`;
+}
+function iouList(){
+  const o=S.ious.filter(x=>!x.done);
+  $("#ioulist").innerHTML=o.length?o.map(x=>`<div class="acc row" data-i="${x.id}"><span>${esc(x.who)}<br><small>${x.dir==="owed"?"owes you":"you owe"}${x.note?" · "+esc(x.note):""}</small></span><b class="${x.dir==="owed"?"Income":"Expense"}">${money(x.amt,x.cur)}</b></div>`).join(""):'<div class="msg">Nothing outstanding</div>';
+  document.querySelectorAll("[data-i]").forEach(el=>el.onclick=()=>iouForm(S.ious.find(x=>x.id===el.dataset.i)));
+}
+function iouForm(x){
+  const e=!!x;x=x||{who:"",amt:"",cur:"OMR",dir:"owed",note:""};let dir=x.dir;
+  open_(`<h3>${e?"Edit":"New"} IOU</h3><div class="seg" style="grid-template-columns:1fr 1fr"><button data-d="owed" class="${dir==="owed"?"on":""}">They owe me</button><button data-d="owe" class="${dir==="owe"?"on":""}">I owe them</button></div>
+  <label>Person</label><input id="i_w" value="${esc(x.who)}"><label>Currency</label><select id="i_c"><option ${x.cur==="OMR"?"selected":""}>OMR</option><option ${x.cur==="INR"?"selected":""}>INR</option></select>
+  <label>Amount</label><input id="i_a" type="number" inputmode="decimal" value="${x.amt}">
+  <label>Split a bill: total and number of people, including you</label><div class="mrow"><input id="i_t" type="number" inputmode="decimal" placeholder="Total"><input id="i_n" type="number" inputmode="numeric" placeholder="People"></div>
+  <label>Note</label><input id="i_o" value="${esc(x.note||"")}"><button class="btn" id="i_s">Save</button>${e?'<button class="btn" id="i_d" style="margin-top:8px;background:var(--in)">Mark as settled</button><button class="btn del" id="i_x">Delete</button>':""}`);
+  document.querySelectorAll("#form [data-d]").forEach(b=>b.onclick=()=>{dir=b.dataset.d;document.querySelectorAll("#form [data-d]").forEach(z=>z.classList.toggle("on",z===b))});
+  $("#i_t").oninput=$("#i_n").oninput=()=>{const t=Number($("#i_t").value),n=Number($("#i_n").value);if(t>0&&n>1)$("#i_a").value=(t/n).toFixed(2)};
+  const sv=()=>{localStorage.setItem("ious",JSON.stringify(S.ious));close_();render()};
+  $("#i_s").onclick=()=>{const o={id:e?x.id:gid("IOU"),who:$("#i_w").value.trim(),amt:Number($("#i_a").value),cur:$("#i_c").value,dir,note:$("#i_o").value.trim(),done:false};if(!o.who||!(o.amt>0))return;e?Object.assign(x,o):S.ious.push(o);sv()};
+  if(e){$("#i_d").onclick=()=>{x.done=true;sv()};$("#i_x").onclick=()=>{S.ious=S.ious.filter(z=>z!==x);sv()}}
+}
+function loanList(){
+  $("#loanlist").innerHTML=S.loans.length?S.loans.map(l=>{const s=loanState(l);return `<div class="acc row" data-l="${l.id}"><span>${esc(l.name)}<br><small>EMI ${money(s.emi,l.cur)} · ${s.left} left${l.acct?" · auto from "+esc(l.acct):""}</small></span><b>${money(s.bal,l.cur)}</b></div>`}).join(""):'<div class="msg">No loans</div>';
+  document.querySelectorAll("[data-l]").forEach(el=>el.onclick=()=>loanForm(S.loans.find(z=>z.id===el.dataset.l)));
+}
+function loanForm(x){
+  const e=!!x;x=x||{name:"",cur:"OMR",principal:"",rate:"",months:"",start:new Date().toLocaleDateString("en-CA")};
+  open_(`<h3>${e?"Edit":"New"} loan</h3><label>Name</label><input id="l_n" value="${esc(x.name)}"><label>Currency</label><select id="l_c"><option ${x.cur==="OMR"?"selected":""}>OMR</option><option ${x.cur==="INR"?"selected":""}>INR</option></select>
+  <label>Loan amount</label><input id="l_p" type="number" inputmode="decimal" value="${x.principal}"><label>Interest rate per year (%)</label><input id="l_r" type="number" inputmode="decimal" value="${x.rate}">
+  <label>Tenure (months)</label><input id="l_m" type="number" inputmode="numeric" value="${x.months}"><label>Loan start date (EMIs fall monthly after it)</label><input id="l_d" type="date" value="${x.start}">
+  <label>Pay the EMI from this account (optional)</label><select id="l_a"><option value="">Don't record payments</option>${S.accounts.map(a=>`<option ${a["Account Name"]===x.acct?"selected":""}>${esc(a["Account Name"])}</option>`).join("")}</select>
+  <label>Category for the payment</label><input id="l_k" value="${esc(x.cat||"Loan EMI")}">
+  <label><input type="checkbox" id="l_p2" style="width:auto;margin-right:8px">Also record EMIs that were already due (only if you have not recorded them yet)</label>
+  <button class="btn" id="l_s">Save loan</button>${e?'<button class="btn del" id="l_x">Delete loan</button>':""}`);
+  const sv=()=>{localStorage.setItem("loans",JSON.stringify(S.loans));close_();render()};
+  $("#l_s").onclick=()=>{const o={id:e?x.id:gid("LN"),name:$("#l_n").value.trim(),cur:$("#l_c").value,principal:Number($("#l_p").value),rate:Number($("#l_r").value)||0,months:Math.round(Number($("#l_m").value)),start:$("#l_d").value};
+    if(!o.name||!(o.principal>0)||!(o.months>0)||!o.start)return;
+    o.acct=$("#l_a").value;o.cat=$("#l_k").value.trim()||"Loan EMI";
+    const ac=S.accounts.find(a=>a["Account Name"]===o.acct);
+    if(o.acct&&ac&&String(ac.Currency).toUpperCase()!==o.cur){alert("The account's currency ("+ac.Currency+") must match the loan currency ("+o.cur+").");return}
+    o.lastPaid=!o.acct?"":$("#l_p2").checked?"":(e&&x.acct===o.acct&&x.lastPaid)?x.lastPaid:lastEmiDate(o);
+    const dup=o.acct&&S.rec.find(r=>r.active&&String(r.description||"").toLowerCase().includes(o.name.toLowerCase()));
+    e?Object.assign(x,o):S.loans.push(o);sv();if(o.acct)autoDue();
+    if(dup)alert("You also have an active recurring item \""+dup.description+"\". Delete or pause it so this EMI is not recorded twice.")};
+  if(e)$("#l_x").onclick=()=>{S.loans=S.loans.filter(z=>z!==x);sv()};
+}
+$("#newiou").onclick=()=>iouForm();$("#newasset").onclick=()=>assetForm();$("#px").onclick=()=>refreshPrices();$("#newloan").onclick=()=>loanForm();
+
+/* saved filters */
+let SF=JSON.parse(localStorage.getItem("sf")||"[]");
+const iso=d=>d.toLocaleDateString("en-CA");
+function relDates(p){const td=iso(new Date());return[p==="month"?td.slice(0,7)+"-01":p==="year"?td.slice(0,4)+"-01-01":iso(new Date(Date.now()-30*864e5)),td]}
+function sfChips(){$("#sfc").innerHTML=SF.map((x,i)=>`<button class="chip" data-sf="${i}">${esc(x.name)}</button>`).join("")}
+function applySF(i){const x=SF[i].f,f=S.f;["type","acct","cur","cat"].forEach(k=>f[k]=new Set(x[k]));f.atype=new Set();f.min=f.max="";f.rel=x.rel;[f.from,f.to]=x.rel?relDates(x.rel):[x.from,x.to];activity()}
+
+/* account detail, reconcile, credit cards */
+const eff=(t,n)=>{const ty=g(t,"Type"),a=Number(g(t,"Amount"));if(ty==="Transfer")return(g(t,"Account")===n?-a:0)+(t["Transfer To Account"]===n?(Number(t["To Amount"])||a):0);return g(t,"Account")===n?({Income:1,Expense:-1,Investment:-1,Redemption:1}[ty]||0)*a:0};
+function accDetail(n){
+  const b=S.bal.find(x=>x.accountName===n),a=S.accounts.find(x=>x["Account Name"]===n)||{};if(!b)return;
+  const txs=S.tx.filter(t=>g(t,"Account")===n||t["Transfer To Account"]===n),ms=[];let[y,mo]=new Date().toISOString().slice(0,7).split("-").map(Number);
+  for(let i=0;i<12;i++){ms.unshift(y+"-"+String(mo).padStart(2,"0"));mo--;if(!mo){mo=12;y--}}
+  const pts=ms.map(k=>({k,v:b.openingBalance+txs.filter(t=>day(t).slice(0,7)<=k).reduce((x,t)=>x+eff(t,n),0)})),cc=/credit/i.test(b.accountType)&&MODE==="local";
+  open_(`<h3>${esc(n)}</h3><div class="big" style="font-size:30px">${money(b.currentBalance,b.currency)}</div>${line(pts,b.currency)}
+  <label>Reconcile: your real balance right now</label><input id="rc_a" type="number" inputmode="decimal"><button class="btn" id="rc_b">Reconcile</button>
+  ${/credit/i.test(b.accountType)?"":`<label>Alert me when the balance falls below</label><input id="lb_a" type="number" inputmode="decimal" placeholder="Leave blank to alert only below zero" value="${LB()[n]??""}"><button class="btn" id="lb_b" style="background:var(--bg);color:var(--ink);border:1px solid var(--line)">Save alert limit</button>`}
+  ${cc?`<h2>Credit card</h2><label>Credit limit</label><input id="cc_l" type="number" inputmode="decimal" value="${a["Credit Limit"]||""}"><label>Statement day (1-28)</label><input id="cc_s" type="number" value="${a["Statement Day"]||""}"><label>Payment due day (1-28)</label><input id="cc_d" type="number" value="${a["Due Day"]||""}"><button class="btn" id="cc_b">Save card details</button>`:""}
+  <h2>Recent</h2>${txRows(txs.slice(0,15))}`);
+  $("#rc_b").onclick=async()=>{const v=$("#rc_a").value;if(v==="")return;const diff=Number(v)-b.currentBalance;if(Math.abs(diff)<.0005){alert("Already matches.");return}
+    try{await post({action:"addTransaction",type:diff>0?"Income":"Expense",account:n,amount:Math.abs(diff),date:iso(new Date()),category:"Adjustment",description:"Balance reconciliation"});close_();await load()}catch(x){alert(x.message)}};
+  if($("#lb_b"))$("#lb_b").onclick=()=>{const m=LB(),v=$("#lb_a").value;if(v==="")delete m[n];else m[n]=Number(v);localStorage.setItem("lowBal",JSON.stringify(m));close_();bell()};
+  if(cc)$("#cc_b").onclick=async()=>{try{await post({action:"setAccountMeta",account:n,limit:$("#cc_l").value,stmt:$("#cc_s").value,due:$("#cc_d").value});close_();await load()}catch(x){alert(x.message)}};
+}
+
+/* assets, trash, calendar file, forecast, year review */
+function assetList(){
+  $("#assetlist").innerHTML=S.assets.length?S.assets.map(a=>`<div class="acc row" data-as="${a.id}"><span>${esc(a.name)}<br><small>${esc(a.type)}${a.units?" · "+a.units+" units":""}${a.cost?" · "+(a.value>=a.cost?"+":"")+Math.round((a.value-a.cost)/a.cost*100)+"%":""}${a.code&&a.nav?" · NAV "+a.nav:""}</small></span><b>${money(a.value,a.cur)}</b></div>`).join(""):'<div class="msg">No assets yet</div>';
+  document.querySelectorAll("[data-as]").forEach(el=>el.onclick=()=>assetForm(S.assets.find(z=>z.id===el.dataset.as)));
+}
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+async function navOf(code){
+  let err;
+  for(const tail of ["/latest",""]){
+    for(let t=0;t<3;t++){
+      try{const r=await fetch("https://api.mfapi.in/mf/"+encodeURIComponent(code)+tail);
+        if(r.status===429||r.status>=500){err=new Error("HTTP "+r.status+" (service busy)");await sleep(1500*(t+1));continue}
+        if(!r.ok)throw new Error("HTTP "+r.status);
+        const j=await r.json(),d=j.data&&j.data[0];if(!d||!(Number(d.nav)>0))throw new Error("no NAV in the response");return{nav:Number(d.nav),date:d.date}}
+      catch(e){err=e;break}
+    }
+  }
+  if(err instanceof TypeError&&URL_&&KEY){ // blocked in the browser: ask your own Google script to fetch it
+    const u=new window.URL(URL_);u.searchParams.set("action","nav");u.searchParams.set("code",code);u.searchParams.set("key",KEY);
+    const j=await(await fetch(u)).json();if(!j.success)throw new Error(j.error||"script could not fetch it");return{nav:j.nav,date:j.date};
+  }
+  throw err;
+}
+async function refreshPrices(quiet){
+  const l=S.assets.filter(a=>a.code&&a.units>0);
+  if(!l.length){if(!quiet)alert("Add a Mutual fund asset with a fund and units first.");return}
+  $("#pxmsg").textContent="Updating NAVs…";let ok=0;const bad=[];
+  for(const [i,a] of l.entries()){if(i)await sleep(700);try{const r=await navOf(a.code);a.nav=r.nav;a.navDate=r.date;a.value=+(a.units*r.nav).toFixed(2);ok++}catch(e){bad.push(a.name+" ("+e.message+")")}}
+  if(ok){localStorage.setItem("assets",JSON.stringify(S.assets));localStorage.setItem("pxAt",String(Date.now()))}
+  $("#pxmsg").textContent=ok?"NAVs updated "+new Date().toLocaleString()+(bad.length?". Failed: "+bad.join(", "):""):"Could not update. Check your internet connection.";
+  if(ok)render();if(!quiet&&bad.length)alert("Could not update: "+bad.join(", ")+". Check your connection or the fund.");
+}
+function autoPx(){if(navigator.onLine&&S.assets.some(a=>a.code&&a.units>0)&&Date.now()-(+localStorage.getItem("pxAt")||0)>216e5)refreshPrices(true)}
+function assetForm(x){
+  const e=!!x;x=x||{name:"",type:"Gold",cur:"OMR",cost:"",value:""};let code=x.code||"",sn=x.schemeName||"";
+  open_(`<h3>${e?"Edit":"New"} asset</h3><label>Name</label><input id="s_n" value="${esc(x.name)}"><label>Type</label><select id="s_t">${["Gold","Stocks","Mutual fund","Property","Vehicle","Savings scheme","Other"].map(t=>`<option ${t===x.type?"selected":""}>${t}</option>`).join("")}</select>
+  <label>Currency</label><select id="s_c"><option ${x.cur==="OMR"?"selected":""}>OMR</option><option ${x.cur==="INR"?"selected":""}>INR</option></select>
+  <div id="s_mf" style="display:none"><label>Find your fund (type part of its name)</label><div class="mrow"><input id="s_q" placeholder="e.g. parag parikh flexi"><button class="chip" id="s_sb" type="button">Search</button></div><div id="s_res" class="chips"></div><p class="cur" id="s_sel"></p><label>Units held</label><input id="s_u" type="number" inputmode="decimal" value="${x.units||""}"></div>
+  <label>Amount invested</label><input id="s_i" type="number" inputmode="decimal" value="${x.cost}"><label id="s_vl">Current value</label><input id="s_v" type="number" inputmode="decimal" value="${x.value}">
+  <button class="btn" id="s_s">Save</button>${e?'<button class="btn del" id="s_x">Delete</button>':""}`);
+  const sv=()=>{localStorage.setItem("assets",JSON.stringify(S.assets));close_();render()};
+  const tsync=()=>{const mf=$("#s_t").value==="Mutual fund";$("#s_mf").style.display=mf?"":"none";$("#s_vl").textContent=mf?"Current value (calculated from units × NAV once a fund is set)":"Current value";if(mf)$("#s_c").value="INR"};
+  $("#s_t").onchange=tsync;tsync();
+  const sel=()=>{$("#s_sel").textContent=code?"Selected: "+sn+" ("+code+")":""};sel();
+  $("#s_sb").onclick=async()=>{const q=$("#s_q").value.trim();if(!q)return;$("#s_res").textContent="Searching…";
+    try{const r=await fetch("https://api.mfapi.in/mf/search?q="+encodeURIComponent(q));if(!r.ok)throw new Error("status "+r.status);const l=(await r.json()).slice(0,8);
+      $("#s_res").innerHTML=l.length?l.map((z,i)=>`<button class="chip" data-r="${i}" type="button">${esc(z.schemeName)}</button>`).join(""):"No funds found";
+      document.querySelectorAll("#s_res [data-r]").forEach(b=>b.onclick=()=>{const z=l[+b.dataset.r];code=String(z.schemeCode);sn=z.schemeName;if(!$("#s_n").value)$("#s_n").value=sn;sel();$("#s_res").innerHTML=""})}
+    catch(err){$("#s_res").textContent="Search failed ("+err.message+"). Check your internet connection."}};
+  $("#s_s").onclick=async()=>{
+    const u=Number($("#s_u").value)||0,use=$("#s_t").value==="Mutual fund"&&code&&u>0;if(!use&&$("#s_v").value==="")return;
+    const o={id:e?x.id:gid("AS"),name:$("#s_n").value.trim(),type:$("#s_t").value,cur:$("#s_c").value,cost:Number($("#s_i").value)||0,value:Number($("#s_v").value)||0,code:use?code:"",schemeName:use?sn:"",units:use?u:0,nav:x.code===code?x.nav||0:0,navDate:x.code===code?x.navDate||"":""};
+    if(!o.name)return;
+    if(use){try{const r=await navOf(code);o.nav=r.nav;o.navDate=r.date;o.value=+(u*r.nav).toFixed(2);localStorage.setItem("pxAt",String(Date.now()))}catch(err){alert("Could not fetch the latest NAV ("+err.message+"), so it was saved with the value you entered. Use Refresh when you are online.")}}
+    e?Object.assign(x,o):S.assets.push(o);sv()};
+  if(e)$("#s_x").onclick=()=>{S.assets=S.assets.filter(z=>z!==x);sv()};
+}
+function trashList(){
+  $("#trashlist").innerHTML=S.trash.length?S.trash.map(t=>`<div class="acc row"><span>${esc(g(t,"Description")||g(t,"Category")||g(t,"Type"))}<br><small>${day(t)} · ${esc(g(t,"Account"))}</small></span><span><b class="${g(t,"Type")}">${money(g(t,"Amount"),g(t,"Currency"))}</b> <button class="chip" data-rt="${esc(tid(t))}">Restore</button></span></div>`).join(""):'<div class="msg">Nothing deleted in the last 30 days</div>';
+}
+function icsText(){
+  const f=iso(new Date()),u=iso(new Date(Date.now()+90*864e5)),st=new Date().toISOString().replace(/[-:]/g,"").slice(0,15)+"Z",o=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Expenses//EN"];
+  occ(f,u).forEach((x,i)=>{const d=x.d.replace(/-/g,""),n=iso(new Date(new Date(x.d+"T12:00:00").getTime()+864e5)).replace(/-/g,"");
+    o.push("BEGIN:VEVENT","UID:exp"+d+i+"@local","DTSTAMP:"+st,"DTSTART;VALUE=DATE:"+d,"DTEND;VALUE=DATE:"+n,"SUMMARY:"+String((x.r.description||x.r.category||x.r.type)+" "+x.r.currency+" "+Number(x.r.amount).toFixed(2)).replace(/[,;]/g," "),
+      "BEGIN:VALARM","ACTION:DISPLAY","DESCRIPTION:Due tomorrow","TRIGGER:-PT15H","END:VALARM","BEGIN:VALARM","ACTION:DISPLAY","DESCRIPTION:Due today","TRIGGER:PT9H","END:VALARM","END:VEVENT")});
+  o.push("END:VCALENDAR");return o.join("\r\n");
+}
+function forecastHtml(cc){
+  const t0=new Date(),bal=S.bal.filter(b=>String(b.currency).toUpperCase()===cc).reduce((x,b)=>x+b.currentBalance,0);
+  const ev=occ(iso(new Date(t0.getTime()+864e5)),iso(new Date(t0.getTime()+90*864e5))).filter(x=>x.k!=="cc"&&x.r.currency===cc),since=iso(new Date(t0.getTime()-60*864e5));
+  const vs=S.tx.filter(t=>g(t,"Currency")===cc&&g(t,"Type")==="Expense"&&day(t)>=since&&!/Recurring/.test(g(t,"Description"))).reduce((x,t)=>x+Number(g(t,"Amount")),0)/60;
+  let b=bal,low={v:bal,d:iso(t0)};const pts=[{k:iso(t0).slice(5),v:b}],at={};
+  for(let d=1;d<=90;d++){const ds=iso(new Date(t0.getTime()+d*864e5));b-=vs;ev.filter(x=>x.d===ds).forEach(x=>{b+=({Income:1,Expense:-1,Investment:-1,Redemption:1}[x.r.type]||0)*Number(x.r.amount)});
+    if(b<low.v)low={v:b,d:ds};if(d%30===0)at[d]=b;if(d%3===0)pts.push({k:ds.slice(5),v:b})}
+  return line(pts,cc)+`<div class="note">In 30 days ${money(at[30],cc)} · 60 days ${money(at[60],cc)} · 90 days ${money(at[90],cc)}</div><div class="note">Lowest point: ${money(low.v,cc)} on ${low.d}</div><div class="note" style="color:var(--mute)">Assumes your 60-day average everyday spending of ${money(vs,cc)} a day, plus recurring items and loan EMIs.</div>`;
+}
+function yearForm(){
+  const Y=(S.hm||new Date().toISOString().slice(0,7)).slice(0,4);let h=`<h3>Year in review ${Y}</h3>`;
+  ["OMR","INR"].forEach(c=>{const ls=S.tx.filter(t=>g(t,"Currency")===c&&day(t).startsWith(Y));if(!ls.length)return;
+    const sm=(l,ty)=>l.filter(t=>g(t,"Type")===ty).reduce((x,t)=>x+Number(g(t,"Amount")),0);
+    const mo=[...Array(12)].map((_,i)=>{const k=Y+"-"+String(i+1).padStart(2,"0"),l=ls.filter(t=>day(t).slice(0,7)===k);return{k,i:sm(l,"Income"),e:sm(l,"Expense")}}).filter(x=>x.i||x.e);
+    const inc=sm(ls,"Income"),exp=sm(ls,"Expense"),best=mo.reduce((a,x)=>x.i-x.e>a.i-a.e?x:a,mo[0]||{k:"–",i:0,e:0}),worst=mo.reduce((a,x)=>x.e>a.e?x:a,mo[0]||{k:"–",i:0,e:0}),by={};
+    ls.filter(t=>g(t,"Type")==="Expense").forEach(t=>{const k=g(t,"Category")||"Other";by[k]=(by[k]||0)+Number(g(t,"Amount"))});
+    const top=Object.entries(by).map(([n,v])=>({n,v})).sort((a,b)=>b.v-a.v).slice(0,5);
+    h+=`<h2>${c}</h2><div class="tiles"><div>Income<b>${money(inc,"")}</b></div><div>Spent<b>${money(exp,"")}</b></div><div>Saved<b>${inc?Math.round((inc-exp)/inc*100)+"%":"–"}</b></div><div>Transactions<b>${ls.length}</b></div><div>Best month<b>${best.k.slice(5)}</b>net ${money(best.i-best.e,"")}</div><div>Highest spending<b>${worst.k.slice(5)}</b>${money(worst.e,"")}</div></div>${hbars(top)}`});
+  open_(h+'<button class="btn" id="yx" style="margin-top:14px">Close</button>');$("#yx").onclick=close_;
+}
+document.addEventListener("click",async e=>{
+  const q=z=>e.target.closest(z);let el;
+  if(q("[data-act=bk]")){drw(false);$("#bk").click()}
+  else if(q("[data-act=px]"))refreshPrices();
+  else if(q("[data-act=ics]"))shareFile(new File([icsText()],"bills.ics",{type:"text/calendar"}));
+  else if(el=q("[data-al]"))alertAct(el);
+  else if(el=q("[data-ai]")){const a=ALERTS[+el.dataset.ai];if(a&&a.go)a.go()}
+  else if(el=q("[data-ac]"))accDetail(el.dataset.ac);
+  else if(el=q("[data-sf]"))applySF(+el.dataset.sf);
+  else if(el=q("[data-sfd]")){SF.splice(+el.dataset.sfd,1);localStorage.setItem("sf",JSON.stringify(SF));filterForm();activity()}
+  else if(el=q("[data-rt]")){try{await post({action:"restoreTransaction",transactionId:el.dataset.rt});await load()}catch(x){alert(x.message)}}
+});
+
+/* loan EMI payments */
+function lastEmiDate(l){const td=iso(new Date()),s=new Date(l.start+"T12:00:00");let last="";for(let i=1;i<=l.months;i++){const d=iso(new Date(s.getFullYear(),s.getMonth()+i,Math.min(s.getDate(),28),12));if(d>td)break;last=d}return last}
+async function processLoans(){
+  const td=iso(new Date());let n=0;
+  for(const l of S.loans){
+    if(!l.acct||!l.start)continue;
+    const s=new Date(l.start+"T12:00:00"),emi=+loanState(l).emi.toFixed(2);
+    for(let i=1;i<=l.months;i++){
+      const d=iso(new Date(s.getFullYear(),s.getMonth()+i,Math.min(s.getDate(),28),12));
+      if(d>td)break;if(l.lastPaid&&d<=l.lastPaid)continue;
+      await post({action:"addTransaction",type:"Expense",account:l.acct,amount:emi,date:d,category:l.cat||"Loan EMI",description:l.name+" EMI",remarks:"Generated from loan "+l.id});
+      l.lastPaid=d;n++;localStorage.setItem("loans",JSON.stringify(S.loans));
+    }
+  }
+  return n;
+}
+let dueBusy=false;
+async function autoDue(){
+  if(dueBusy||MODE!=="local"||localStorage.getItem("auto")==="0")return;dueBusy=true;
+  try{let n=await processLoans();const r=await post({action:"processRecurring"});n+=r.created||0;
+    if(n){await load();alert(n+" due payment(s) were recorded automatically.")}}
+  catch(e){}finally{dueBusy=false}
+}
+
+/* month report image */
+async function report(){
+  const m=S.hm||new Date().toISOString().slice(0,7),cs=["OMR","INR"].filter(c=>S.tx.some(t=>g(t,"Currency")===c&&day(t).slice(0,7)===m));
+  const c=document.createElement("canvas");c.width=1080;c.height=1400;const x=c.getContext("2d"),css=getComputedStyle(document.documentElement),V=n=>css.getPropertyValue(n).trim(),F=(w,z)=>x.font=w+" "+z+"px -apple-system,sans-serif";
+  x.fillStyle=V("--bg");x.fillRect(0,0,1080,1400);x.fillStyle=V("--ink");F(800,64);x.fillText("Money report",70,120);F(400,36);x.fillStyle=V("--mute");x.fillText(m,70,175);
+  let y=250;if(!cs.length){F(400,36);x.fillText("No transactions this month",70,y)}
+  cs.forEach(cu=>{
+    const ls=S.tx.filter(t=>g(t,"Currency")===cu&&day(t).slice(0,7)===m),sm=ty=>ls.filter(t=>g(t,"Type")===ty).reduce((a,t)=>a+Number(g(t,"Amount")),0),i=sm("Income"),e=sm("Expense"),v=sm("Investment")-sm("Redemption");
+    x.fillStyle=V("--card");x.beginPath();x.roundRect(60,y,960,170,36);x.fill();
+    x.fillStyle=V("--mute");F(400,32);x.fillText(cu+" net flow",100,y+55);x.fillStyle=V("--ink");F(800,64);x.fillText(money(i-e-v,""),100,y+125);
+    F(400,30);x.fillStyle=V("--in");x.fillText("In "+money(i,""),600,y+60);x.fillStyle=V("--out");x.fillText("Out "+money(e,""),600,y+115);y+=210;
+    const by={};ls.filter(t=>g(t,"Type")==="Expense").forEach(t=>{const k=g(t,"Category")||"Other";by[k]=(by[k]||0)+Number(g(t,"Amount"))});
+    const top=Object.entries(by).sort((a,b)=>b[1]-a[1]).slice(0,3),mx=top[0]?top[0][1]:1;
+    top.forEach(([k,val])=>{x.fillStyle=V("--ink");F(400,32);x.textAlign="left";x.fillText(k,100,y+28);x.textAlign="right";x.fillText(money(val,""),980,y+28);x.textAlign="left";
+      x.fillStyle=V("--line");x.fillRect(100,y+46,880,14);x.fillStyle=V("--acc");x.fillRect(100,y+46,880*val/mx,14);y+=92});
+    y+=50});
+  const b=await new Promise(r=>c.toBlob(r,"image/png"));await shareFile(new File([b],"report-"+m+".png",{type:"image/png"}));
+}
+
+/* ---------- navigation ---------- */
+function tab(n){
+  document.querySelectorAll("section").forEach(s=>s.classList.toggle("on",s.id===n));
+  document.querySelectorAll("nav [data-tab]").forEach(b=>b.classList.toggle("on",b.dataset.tab===n));
+  $("#title").textContent={home:"Home",activity:"Activity",insights:"Insights",budgets:"Budgets",al:"Assets & Liabilities",accounts:"Accounts",more:"Settings"}[n];document.querySelector("main").scrollTop=0;
+}
+document.querySelectorAll("nav [data-tab]").forEach(b=>b.onclick=()=>tab(b.dataset.tab));
+$("#add").onclick=()=>S.accounts.length?txForm():alert("Add an account in Settings first.");
+$("#sync").onclick=load;
+$("#q").oninput=activity;$("#fbtn").onclick=filterForm;
+document.addEventListener("click",e=>{const el=e.target.closest(".tx");if(!el)return;
+  const t=S.tx.find(x=>String(tid(x))===el.dataset.id);if(t)txForm(t)});
+$("#saveurl").onclick=()=>{URL_=$("#url").value.replace(/[\s\u200B-\u200D\uFEFF"“”]/g,"");KEY=$("#key").value.replace(/[\s\u200B-\u200D\uFEFF"“”]/g,"");
+  if(!/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(URL_)){$("#conn").innerHTML='<span class="err">This is not a web app URL. It must start with https://script.google.com/macros/s/ and end with /exec, with nothing after it.</span>';return}
+  localStorage.setItem("api",URL_);localStorage.setItem("key",KEY);tab("home");load()};
+$("#url").value=URL_;$("#key").value=KEY;
+$("#rate").value=localStorage.getItem("rate")||"";$("#autodue").checked=localStorage.getItem("auto")!=="0";$("#autodue").onchange=e=>localStorage.setItem("auto",e.target.checked?"1":"0");$("#rate").onchange=e=>{localStorage.setItem("rate",e.target.value);home()};
+$("#newgoal").onclick=()=>S.accounts.length?goalForm():alert("Add an account in Settings first.");
+const mn=document.querySelector("main");let y0=null;
+mn.addEventListener("touchstart",e=>{y0=mn.scrollTop===0?e.touches[0].clientY:null},{passive:true});
+mn.addEventListener("touchend",e=>{if(y0!==null&&e.changedTouches[0].clientY-y0>110)load();y0=null});
+let sx=null,sy=0;
+document.addEventListener("touchstart",e=>{const el=e.target.closest("#txlist .tx");sx=el?e.touches[0].clientX:null;sy=e.touches[0].clientY},{passive:true});
+document.addEventListener("touchend",async e=>{const el=e.target.closest("#txlist .tx");if(!el||sx===null)return;
+  const dx=e.changedTouches[0].clientX-sx,dy=Math.abs(e.changedTouches[0].clientY-sy);sx=null;
+  if(dx<-90&&dy<30&&confirm("Delete this transaction?")){try{await post({action:"deleteTransaction",transactionId:el.dataset.id});await load()}catch(x){alert(x.message)}}});
+window.addEventListener("online",load);
+if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
+uiMode();
+try{const c0=localStorage.getItem("cache");if(c0&&URL_&&MODE!=="local")apply(JSON.parse(c0))}catch(_){}
+tab("home");load();
+</script>
+</body>
+</html>
