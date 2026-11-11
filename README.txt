@@ -1,34 +1,21 @@
-EXPENSES OFFLINE IPHONE PWA — TEST BUILD
+EXPENSES — OFFLINE ONLY (NO GOOGLE SHEETS)
+This is a complete test build based on your uploaded index(2).html.
 
-This package includes your uploaded index(2).html, not a re-created UI.
-The source already includes a service-worker registration. This package adds
-the matching service worker, manifest and app icons.
+REMOVED: Google Sheets mode, Apps Script URL/key controls, Save and connect,
+Import from Google Sheet, remote sheet fetch/post code, NAV Apps Script fallback.
+Existing local data handling, transactions, budgets, assets, receipts, loans,
+recurring items, backup and restore remain.
 
-CHANGES:
-- New installations default to 'This iPhone only' mode.
-- Existing installations preserve their chosen storage mode.
-- All app files needed for launching are cached after the first online visit.
-- Existing localStorage ledger, receipt IndexedDB, and backup/restore code remain unchanged.
-
-INSTALL:
-1. Back up your current app using Settings > Back up to Files.
-2. Create a separate TEST GitHub Pages repository or deployment path.
-3. Upload the SIX files in this ZIP at the root of that deployment.
-4. Open the HTTPS page in iPhone Safari while online.
-5. In Safari: Share > Add to Home Screen. Launch the new icon while online.
-6. In the new app Settings, confirm 'This iPhone only' mode.
-7. Restore the JSON backup using 'Restore from backup file'.
-8. Check account balances, transaction counts, investments, budgets,
-   recurring items, loans, IOUs, and receipt attachments.
-9. Test with Airplane Mode on, force-close, reopen, add a test transaction,
-   edit it, export a backup, and verify the changes after relaunch.
-
-CAUTIONS:
-- Storage is isolated by origin and installation; your original app's data
-  does not automatically appear in this test build.
-- This build retains localStorage for financial records. A move to IndexedDB
-  requires separate migration/testing to avoid ledger corruption.
-- NAV updates and external APIs require internet.
-- Do not delete original hosting or original app until backup restore and
-  offline tests succeed. Removing hosting risks future reinstallation.
-- PWA storage/cache may be evicted by iOS. Export backups regularly.
+IMPORTANT:
+1. Export a fresh full backup from the working app first.
+2. Test this build on the SAME existing GitHub Pages origin/path only after
+   backing up, or use a separate test deployment and restore your JSON.
+3. The old Google Sheet mode is forcibly set to local mode, without importing
+   anything from Sheets. This build NEVER migrates Sheets data automatically.
+4. If installed at a different URL/path, restore your JSON backup manually.
+5. Service worker cache is version v2. After uploading, launch online once,
+   close/reopen, and test in Airplane Mode.
+6. Mutual-fund NAV fetch from mfapi.in still requires internet.
+7. Financial data remains in localStorage and receipts in IndexedDB;
+   a future database migration needs independent validation.
+8. Keep your original app and backup until records and offline operation are verified.

@@ -104,17 +104,15 @@ nav .plus{width:54px;height:54px;border-radius:27px;background:var(--acc);color:
     <h2>Loans and EMIs</h2><div class="card" id="loanlist"></div><button class="btn" id="newloan">New loan</button>
     <h2>IOUs</h2><div class="card" id="ioulist"></div><button class="btn" id="newiou">New IOU</button></section>
   <section id="more">
-    <div class="card"><label>Where is your data stored?</label>
-    <div class="seg" style="grid-template-columns:1fr 1fr"><button id="m_sheet">Google Sheet</button><button id="m_local">This iPhone only</button></div>
-    <div id="localtools" style="display:none">
-      <button class="btn" id="bk">Back up to Files</button>
-      <button class="btn" id="rs" style="margin-top:8px">Restore from backup file</button>
-      <button class="btn" id="imp" style="margin-top:8px">Import from my Google Sheet</button>
-      <input type="file" id="rsf" accept=".json,.txt,application/json,text/plain" style="display:none">
-      <p class="cur" id="lmsg"></p></div></div>
-    <div class="card"><label>Web app URL</label><input id="url" placeholder="https://script.google.com/macros/s/…/exec" autocapitalize="off" autocorrect="off">
-    <label>Secret key</label><input id="key" type="password" autocapitalize="off" autocorrect="off">
-    <button class="btn" id="saveurl">Save and connect</button><p class="cur" id="conn"></p></div>
+    <div class="card"><label>Data storage</label>
+      <p class="cur">Your records are stored on this iPhone. No Google Sheets connection.</p>
+      <div id="localtools">
+        <button class="btn" id="bk">Back up to Files</button>
+        <button class="btn" id="rs" style="margin-top:8px">Restore from backup file</button>
+        <input type="file" id="rsf" accept=".json,.txt,application/json,text/plain" style="display:none">
+        <p class="cur" id="lmsg"></p>
+      </div>
+    </div>
     <h2>Appearance</h2>
     <div class="card"><label>Theme</label><div class="seg" style="grid-template-columns:repeat(3,1fr)"><button data-th="auto">Auto</button><button data-th="dark">Dark</button><button data-th="light">Light</button></div>
     <label>Accent colour</label><div class="chips">
@@ -155,20 +153,13 @@ nav .plus{width:54px;height:54px;border-radius:27px;background:var(--acc);color:
 <script>
 const $=s=>document.querySelector(s), TYPES=["Expense","Income","Investment","Redemption","Transfer"];
 const S={hm:new Date().toISOString().slice(0,7),cc:"OMR",off:false,goals:JSON.parse(localStorage.getItem("goals")||"[]"),ious:JSON.parse(localStorage.getItem("ious")||"[]"),loans:JSON.parse(localStorage.getItem("loans")||"[]"),rk:new Set(),assets:JSON.parse(localStorage.getItem("assets")||"[]"),trash:[],atype:{},f:{type:new Set(),acct:new Set(),atype:new Set(),cur:new Set(),cat:new Set(),from:"",to:"",min:"",max:""},accounts:[],cats:[],tx:[],bal:[],dash:null,bud:[],rec:[],month:new Date().toISOString().slice(0,7)};
-let URL_=localStorage.getItem("api")||"",KEY=localStorage.getItem("key")||"",MODE=localStorage.getItem("mode")||"local";
+const MODE="local";
+// Preserve the existing local database. Remove old connection credentials.
+localStorage.removeItem("api");localStorage.removeItem("key");localStorage.setItem("mode","local");
 
 /* ---------- API (POST sent as text/plain so Apps Script needs no CORS preflight) ---------- */
-async function get(action,p={}){
-  if(MODE==="local")return L.get(action);
-  const u=new window.URL(URL_);u.searchParams.set("action",action);if(KEY)u.searchParams.set("key",KEY);
-  Object.entries(p).forEach(([k,v])=>v&&u.searchParams.set(k,v));
-  const r=await(await fetch(u)).json();if(!r.success)throw new Error(r.error||"Request failed");return r;
-}
-async function post(body){
-  if(MODE==="local")return L.post(body);
-  const r=await(await fetch(URL_,{method:"POST",body:JSON.stringify({...body,key:KEY})})).json();
-  if(!r.success)throw new Error(r.error||"Request failed");return r;
-}
+async function get(action,p={}){return L.get(action);}
+async function post(body){return L.post(body);}
 
 /* ---------- helpers ---------- */
 const g=(o,k)=>o[k]!==undefined?o[k]:"";
@@ -201,15 +192,15 @@ async function fetchAll(){
     return Promise.all([get("accounts"),get("categories"),get("transactions"),get("accountBalances"),get("dashboard"),get("budgets"),get("recurring").catch(()=>({recurring:[]}))])}
 }
 async function load(){
-  if(MODE!=="local"&&!URL_){tab("more");$("#conn").textContent="Paste your Apps Script web app URL to begin.";return}
+
   $("#sync").textContent="…";
   try{
     await flush();
     const r=await fetchAll();
-    if(MODE!=="local")try{localStorage.setItem("cache",JSON.stringify(r))}catch(_){}
-    S.off=false;apply(r);rcOp("getAllKeys").then(k=>{S.rk=new Set(k.map(String));activity()}).catch(()=>{});autoPx();autoDue();$("#conn").textContent=MODE==="local"?"Using storage on this iPhone":"Connected";
+
+    S.off=false;apply(r);rcOp("getAllKeys").then(k=>{S.rk=new Set(k.map(String));activity()}).catch(()=>{});autoPx();autoDue();
   }catch(e){
-    const c=localStorage.getItem("cache");
+    const c=null;
     if(c){S.off=true;apply(JSON.parse(c));$("#conn").innerHTML='<span class="err">Offline, showing saved data ('+esc(e.message)+')</span>'}
     else{$("#conn").innerHTML='<span class="err">'+esc(e.message)+'</span>';
       $("#home").innerHTML='<div class="msg err">Could not load data.<br>'+esc(e.message)+'<br>Check the URL and key.</div>'}
@@ -441,8 +432,8 @@ function catForm(){
   $("#c_save").onclick=async()=>{try{await post({action:"addCategory",type:$("#c_t").value,category:$("#c_c").value,subcategory:$("#c_s").value});close_();await load()}catch(x){$("#c_err").textContent=x.message}};
 }
 $("#newrec").onclick=()=>S.accounts.length?recForm():alert("Add an account in Settings first.");
-$("#newacc").onclick=()=>(URL_||MODE==="local")?accForm():alert("Add an account in Settings first.");
-$("#newcat").onclick=()=>(URL_||MODE==="local")?catForm():alert("Add an account in Settings first.");
+$("#newacc").onclick=()=>accForm();
+$("#newcat").onclick=()=>catForm();
 $("#runrec").onclick=async()=>{try{const r=await post({action:"processRecurring"}),n=await processLoans();alert(r.message+(n?". "+n+" loan EMI(s) recorded":""));await load()}catch(x){alert(x.message)}};
 
 let TPL=[];
@@ -561,14 +552,11 @@ function assetApply(t,dir){
 /*LOCAL-END*/
 async function shareFile(f){try{if(navigator.canShare&&navigator.canShare({files:[f]}))await navigator.share({files:[f]});else{const a=document.createElement("a");a.href=window.URL.createObjectURL(f);a.download=f.name;a.click()}}catch(_){}}
 function uiMode(){
-  $("#m_local").classList.toggle("on",MODE==="local");$("#m_sheet").classList.toggle("on",MODE!=="local");
-  $("#localtools").style.display=MODE==="local"?"":"none";$("#dbk").style.display=MODE==="local"?"":"none";
-  const lb=localStorage.getItem("lastbk");$("#dbkd").textContent=lb||"never";$("#lmsg").textContent=lb?"Last backup: "+lb:"No backup yet. Your data lives only on this iPhone, so back up regularly.";
+  $("#dbk").style.display="";
+  const lb=localStorage.getItem("lastbk");
+  $("#dbkd").textContent=lb||"never";
+  $("#lmsg").textContent=lb?"Last backup: "+lb:"No backup yet. Your data lives only on this iPhone, so back up regularly.";
 }
-function setMode(m){MODE=m;localStorage.setItem("mode",m);uiMode();load()}
-$("#m_local").onclick=()=>{if(MODE==="local")return;if(!confirm("Store data only on this iPhone? Your Google Sheet stays untouched. You can import it into the app next."))return;
-  setMode("local");try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(_){}};
-$("#m_sheet").onclick=()=>{if(MODE!=="local")return;setMode("sheet")};
 $("#bk").onclick=async()=>{await shareFile(new File([JSON.stringify(await fullBackup())],"expenses-backup-"+new Date().toLocaleDateString("en-CA")+".json",{type:"text/plain"}));localStorage.setItem("lastbk",new Date().toLocaleDateString("en-CA"));uiMode();home();bell()};
 $("#rs").onclick=()=>$("#rsf").click();
 $("#rsf").onchange=async e=>{const f=e.target.files[0];if(!f)return;
@@ -576,13 +564,6 @@ $("#rsf").onchange=async e=>{const f=e.target.files[0];if(!f)return;
     if(!confirm("Replace all data on this iPhone with this backup?"))return;
     restoreExtras(d);d.categories=d.categories||DEFCATS;d.budgets=d.budgets||[];d.recurring=d.recurring||[];DBL.save(d);await load()}catch(x){alert(x.message)}
   e.target.value=""};
-$("#imp").onclick=async()=>{
-  if(!URL_||!KEY){alert("Enter your Google Sheet URL and key below, tap Save and connect, then try again.");return}
-  if(!confirm("Replace the data on this iPhone with a copy of your Google Sheet?"))return;
-  const m=MODE;MODE="sheet";
-  try{const r=await fetchAll();DBL.save({accounts:r[0].accounts,categories:r[1].categories,transactions:r[2].transactions,budgets:r[5].budgets,recurring:r[6].recurring});MODE=m;await load();alert("Imported "+r[2].transactions.length+" transactions.")}
-  catch(x){MODE=m;alert(x.message)}};
-
 const card=(t,b)=>`<h2>${t}</h2><div class="card">${b}</div>`;
 function hbars(items){if(!items.length)return '<div class="msg">No expenses</div>';const mx=items[0].v;
   return items.map((i,k)=>`<div style="margin:10px 0"><div class="row" style="font-size:14px"><span>${esc(i.n)}</span><b>${money(i.v,"")}</b></div><div class="bar"><i style="width:${i.v/mx*100}%;background:${PAL[k%6]}"></i></div></div>`).join("")}
@@ -640,7 +621,7 @@ look();
 const drw=on=>{$("#drawer").classList.toggle("on",on);$("#scrim").classList.toggle("on",on)};
 $("#menu").onclick=()=>drw(true);$("#scrim").onclick=()=>drw(false);$("#bell").onclick=alertsOpen;
 document.querySelectorAll("#drawer [data-go]").forEach(b=>b.onclick=()=>{drw(false);b.dataset.go==="alerts"?alertsOpen():tab(b.dataset.go)});
-$("#newacc2").onclick=()=>(URL_||MODE==="local")?accForm():alert("Connect your sheet first.");
+$("#newacc2").onclick=()=>accForm();
 let ex=null,ey=0;
 document.addEventListener("touchstart",e=>{const t=e.touches[0],on=$("#drawer").classList.contains("on");
   ex=(!$("#sheet").classList.contains("on")&&$("#lock").style.display!=="flex"&&(t.clientX<24||on))?t.clientX:null;ey=t.clientY},{passive:true});
@@ -864,10 +845,6 @@ async function navOf(code){
       catch(e){err=e;break}
     }
   }
-  if(err instanceof TypeError&&URL_&&KEY){ // blocked in the browser: ask your own Google script to fetch it
-    const u=new window.URL(URL_);u.searchParams.set("action","nav");u.searchParams.set("code",code);u.searchParams.set("key",KEY);
-    const j=await(await fetch(u)).json();if(!j.success)throw new Error(j.error||"script could not fetch it");return{nav:j.nav,date:j.date};
-  }
   throw err;
 }
 async function refreshPrices(quiet){
@@ -1002,10 +979,6 @@ $("#sync").onclick=load;
 $("#q").oninput=activity;$("#fbtn").onclick=filterForm;
 document.addEventListener("click",e=>{const el=e.target.closest(".tx");if(!el)return;
   const t=S.tx.find(x=>String(tid(x))===el.dataset.id);if(t)txForm(t)});
-$("#saveurl").onclick=()=>{URL_=$("#url").value.replace(/[\s\u200B-\u200D\uFEFF"“”]/g,"");KEY=$("#key").value.replace(/[\s\u200B-\u200D\uFEFF"“”]/g,"");
-  if(!/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(URL_)){$("#conn").innerHTML='<span class="err">This is not a web app URL. It must start with https://script.google.com/macros/s/ and end with /exec, with nothing after it.</span>';return}
-  localStorage.setItem("api",URL_);localStorage.setItem("key",KEY);tab("home");load()};
-$("#url").value=URL_;$("#key").value=KEY;
 $("#rate").value=localStorage.getItem("rate")||"";$("#autodue").checked=localStorage.getItem("auto")!=="0";$("#autodue").onchange=e=>localStorage.setItem("auto",e.target.checked?"1":"0");$("#rate").onchange=e=>{localStorage.setItem("rate",e.target.value);home()};
 $("#newgoal").onclick=()=>S.accounts.length?goalForm():alert("Add an account in Settings first.");
 const mn=document.querySelector("main");let y0=null;
@@ -1019,7 +992,7 @@ document.addEventListener("touchend",async e=>{const el=e.target.closest("#txlis
 window.addEventListener("online",load);
 if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
 uiMode();
-try{const c0=localStorage.getItem("cache");if(c0&&URL_&&MODE!=="local")apply(JSON.parse(c0))}catch(_){}
+
 tab("home");load();
 </script>
 </body>
