@@ -1,0 +1,1 @@
+v9 Header Fix: renamed header toolbar CSS class to topbar, preventing collision with progress bar CSS (.bar height:9px;overflow:hidden). Added consistent SVG search/refresh icons. No financial data or storage changes. Upload all files and reopen app online to update offline cache.
